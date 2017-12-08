@@ -1,0 +1,25 @@
+﻿10001   
+6812 20 10 
+1 1 1   
+10 31
+5
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+0 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0
+0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0
+2
+P 25 10 10 1
+1 1 1
+P 80 0 0 2
+31 8 2
+1 10 4
+0 5
+0 0
