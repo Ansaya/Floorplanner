@@ -1,19 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Floorplanner.ArgParser;
+﻿using Floorplanner.ArgParser;
 using Floorplanner.Models;
+using Floorplanner.Models.Solver;
+using System;
+using System.IO;
 
 namespace Floorplanner
 {
     class Program
     {
-        private static string _inputFile;
+        private static string _inputFile = null;
 
-        private static string _outputFile;
+        private static string _outputFile = null;
 
         private static OptParser _optParser = new OptParser(
                 "Floorplanner",
@@ -45,13 +42,16 @@ namespace Floorplanner
             Design problem = Design.Parse(File.OpenText(_inputFile));
 
             Console.WriteLine("Design constraints loaded succesfully.\nNow computing solution...");
-            
-            // TODO: compute solution
 
-            // TODO: save solution to output
+            Solver.Solver s = new Solver.Solver(problem);
 
-            // TODO: clap hands
-            
+            Floorplan optimiezdPlan = s.Solve();
+
+            TextWriter outPipe = Console.Out;
+            if (_outputFile != null)
+                outPipe = File.CreateText(_outputFile);
+
+            optimiezdPlan.PrintOn(Console.Out);            
         }
     }
 }

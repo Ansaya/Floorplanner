@@ -1,20 +1,22 @@
 ﻿using Floorplanner.Models.Components;
 using Floorplanner.ProblemParser;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Floorplanner.Models
 {
-    public class Design
+    public class Design : IComparer<Region>
     {
-        public string ID { get; set; }
+        public string ID { get; private set; }
 
-        public Costs Costs { get; set; }
+        public Costs Costs { get; private set; }
 
-        public FPGA FPGA { get; set; }
+        public FPGA FPGA { get; private set; }
 
-        public Region[] Regions { get; set; }
+        public Region[] Regions { get; private set; }
 
-        public int[,] RegionWires { get; set; }
+        public int[,] RegionWires { get; private set; }
 
         public static Design Parse(TextReader designFileContent)
         {
@@ -43,6 +45,31 @@ namespace Floorplanner.Models
             }
 
             return design;
+        }
+
+        public int Compare(Region x, Region y)
+        {
+            int xScore = GetScore(x);
+            int yScore = GetScore(y);
+
+            return xScore == yScore ? 0
+                : xScore > yScore ? 1
+                : -1;
+        }
+
+        public int GetScore(Region x)
+        {
+            int rIndex = 0;
+
+            while (Regions[rIndex] != x) rIndex++;
+
+            int interConnScore = 0;
+
+            for (int i = 0; i < RegionWires.GetLength(1); i++)
+                interConnScore += RegionWires[rIndex, i];
+
+            return x.Resources.Sum(pari => pari.Value * Costs.ResourceWeight[pari.Key]) * Costs.Area
+                + (x.IOConns.Sum(conn => conn.Wires) + interConnScore) * Costs.WireLength;
         }
     }
 }
