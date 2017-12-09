@@ -2,7 +2,7 @@
 {
     public enum RegionType
     {
-        Static = 80,
-        Reconfigurable = 83
+        Static = 83,
+        Reconfigurable = 80
     }
 }

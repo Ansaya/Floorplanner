@@ -5,12 +5,24 @@ namespace Floorplanner.Models.Components
 {
     public class FPGA
     {
+        /// <summary>
+        /// FPGA block types for each position.
+        /// </summary>
         public BlockType[,] Design { get; private set; }
 
+        /// <summary>
+        /// True where a reconfigurable region can start
+        /// </summary>
         public bool[] LRecCol { get; private set; }
-
+        
+        /// <summary>
+        /// True where a reconfigurable region can end
+        /// </summary>
         public bool[] RRecCol { get; private set; }
 
+        /// <summary>
+        /// Height of tiles for this FPGA
+        /// </summary>
         public int TileHeight { get; private set; }
 
         public static FPGA Parse(TextReader atFPGADesign)
