@@ -35,7 +35,7 @@ namespace Floorplanner
             }
 
             if (!Path.IsPathRooted(_inputFile))
-                _inputFile = Path.Combine(Directory.GetCurrentDirectory(), _inputFile);
+                _inputFile = Path.GetFullPath(_inputFile);
 
             Console.WriteLine("Loading design requests and boundaries from file...");
 
@@ -45,7 +45,19 @@ namespace Floorplanner
 
             Solver.Solver s = new Solver.Solver(problem);
 
-            Floorplan optimiezdPlan = s.Solve();
+            Floorplan optimiezdPlan;
+
+            try
+            {
+                optimiezdPlan = s.Solve();
+            } catch(Exception e)
+            {
+                Console.WriteLine($"Error during optimization process...");
+                Console.WriteLine(e.Message);
+                Console.WriteLine("Press a key to exit...");
+                Console.ReadKey();
+                return;
+            }
 
             Console.WriteLine("Solution was computed succesfully!");
 
@@ -60,8 +72,12 @@ namespace Floorplanner
             optimiezdPlan.PrintOn(outPipe);
 
             if(_outputFile != null)
+            {
                 outPipe.Close();
+                Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(_outputFile)}'.");
+            }
 
+            Console.WriteLine("Press a key to exit...");
             Console.ReadKey();
         }
     }

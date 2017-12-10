@@ -21,6 +21,7 @@ namespace Floorplanner.Solver
         public Floorplan Solve()
         {
             DistanceOptimizer dOpt = new DistanceOptimizer(Design);
+            Console.WriteLine("Optimizing region center points...");
 
             // Get optimal region centers to minimize wire weight
             Point[] idealCenters = dOpt.GetOptimizedCenters();
@@ -30,9 +31,13 @@ namespace Floorplanner.Solver
             int fpgaHeight = Design.FPGA.Design.GetLength(0);
             int fpgaWidth = Design.FPGA.Design.GetLength(1);
 
+            Console.WriteLine("Optimizing region area...");
+
             // Try place and expand each area nearest possible to computed center points
             for(int i = 0; i < idealCenters.Length; i++)
             {
+                Console.WriteLine($"Optimizing region {i}...");
+
                 Area area = fPlan.Areas[i];
                 List<Point> toSearch = new List<Point>(fPlan.FreePoints);
                 IEnumerator<Point> spiralPoint = new SpiralPoint(idealCenters[i], toSearch);
@@ -69,6 +74,8 @@ namespace Floorplanner.Solver
                 if (!area.IsConfirmed)
                     throw new Exception("Can't place an area in current floorplan. Sorry for the inconvenience.");
             }
+
+            Console.WriteLine("Region area optimization completed successfully.");
 
             return fPlan;
         }

@@ -2,9 +2,11 @@
 using Floorplanner.Models.Components;
 using Floorplanner.Models.Solver;
 using Floorplanner.ProblemParser;
-using System.Collections.Generic;
+using System;
+using System.IO;
 using System.Linq;
-using WAWrapper;
+using System.Diagnostics;
+using System.Threading;
 
 namespace Floorplanner.Solver
 {
@@ -17,12 +19,7 @@ namespace Floorplanner.Solver
         public FPGA FPGA { get => _design.FPGA; }
 
         private readonly Design _design;
-
-        private readonly WAEngine _waService = new WAEngine()
-        {
-            APIKey = DesignParser.WolframAPIKey
-        };
-
+        
         public DistanceOptimizer(Design design)
         {
             _design = design;
@@ -30,14 +27,19 @@ namespace Floorplanner.Solver
 
         public Point[] GetOptimizedCenters()
         {
-            List<string> xDistanceEqAndAss = GetXDistanceEquationAndAssumptions();
-            List<string> yDistanceEqAndAss = GetYDistanceEquationAndAssumptions();
+            int[] xCoord = null;
+            int[] yCoord = null;
+            
+            RunAmplFor(
+                DistanceAmplFiles(io => (int)io.Point.X, FPGA.Design.GetLength(1)), 
+                out xCoord);
 
-            WAQueryResult xResult = _waService.RunQuery(xDistanceEqAndAss.Aggregate((a, b) => $"{a},{b}"));
-            WAQueryResult yResult = _waService.RunQuery(yDistanceEqAndAss.Aggregate((a, b) => $"{a},{b}"));
+            RunAmplFor(
+                DistanceAmplFiles(io => (int)io.Point.Y, FPGA.Design.GetLength(0)), 
+                out yCoord);
 
-            int[] xCoord = GetCoords(xResult);
-            int[] yCoord = GetCoords(yResult);
+            if (xCoord == null || yCoord == null)
+                throw new Exception("There was an error parsing AMPL results.");
 
             Point[] centers = new Point[xCoord.Length];
 
@@ -47,32 +49,51 @@ namespace Floorplanner.Solver
             return centers;
         }
 
-        private int[] GetCoords(WAQueryResult result)
+        private void RunAmplFor(string[] modRunOutPaths, out int[] coords)
         {
-            string coordString = result.Pods.Single(pod => pod.ID == "GlobalMinima").SubPods[0].PlainText;
-            coordString = coordString.Substring(coordString.LastIndexOf('(') + 1).TrimEnd(')');
+            string yCoordResultPath = modRunOutPaths[2];
 
-            return coordString.Split(',').Select(v => int.Parse(v)).ToArray();
+            Process ampl = Process.Start(new ProcessStartInfo()
+            {
+                FileName = @"Ampl\ampl.exe",
+                WorkingDirectory = @"Ampl",
+                Arguments = modRunOutPaths[1],
+                UseShellExecute = false
+            });
+
+            ampl.WaitForExit();
+            if (ampl.ExitCode != 0)
+                throw new Exception("Ampl process returned non zero.");
+
+            string[] resultLines = File.ReadAllLines(modRunOutPaths[2]);
+
+            coords = new int[Regions.Count()];
+
+            for (int i = 0; i < Regions.Count(); i++)
+                coords[i] = int.Parse(resultLines[i].Split('=')[1]);
+
+            foreach (var f in modRunOutPaths)
+                File.Delete(f);
         }
 
-        private List<string> GetXDistanceEquationAndAssumptions()
+        private string[] DistanceAmplFiles(Func<IOConn, int> getCoord, int fpgaMaxCoord)
         {
             int startVar = 'a';
-
-            string equation = "minimize ";
-            List<string> constraints = new List<string>();
-
-            int r = 0;
-            for (; r < Regions.Length; r++)
+            string equation = "minimize Distance: ";
+            string constraints = String.Empty;
+            string displays = DesignParser.RunIncipit + "display ";
+            
+            for (int r = 0; r < Regions.Length; r++)
             {
                 Region currentReg = Regions[r];
                 char var = (char)(startVar + r);
 
-                constraints.Add($"0<={var}<{FPGA.Design.GetLength(1)}");
+                constraints += $"var {var} integer, >= 0, <= {fpgaMaxCoord};";
+                displays += $"{var}, ";
 
                 // Sum distances for io connections to current region
                 foreach (var io in currentReg.IOConns)
-                    equation += $"{io.Wires}|{(int)io.Point.X}-{var}|+";
+                    equation += $"abs({getCoord(io)}-{var})*{io.Wires}+";
 
                 // Sum distances for region interconnections
                 for (int i = 0; i < InterConn.GetLength(0); i++)
@@ -81,48 +102,21 @@ namespace Floorplanner.Solver
                     int wires = InterConn[r, i];
 
                     if (wires > 0)
-                        equation += $"{wires}|{var}-{connRegVar}|+";
+                        equation += $"abs({var}-{connRegVar})*{wires}+";
                 }
             }
 
-            constraints.Insert(0, equation.TrimEnd('+'));
+            string modFile = Path.GetTempFileName();
+            string runFile = Path.GetTempFileName();
+            string result = Path.GetTempFileName();
 
-            return constraints;
-        }
+            equation = equation.TrimEnd('+') + ";";
+            displays = String.Format(displays.TrimEnd(' ', ','), modFile) + $">'{result}';";
 
-        private List<string> GetYDistanceEquationAndAssumptions()
-        {
-            int startVar = 'a';
+            File.AppendAllText(modFile, constraints + equation);
+            File.AppendAllText(runFile, displays);
 
-            string equation = "minimize ";
-            List<string> constraints = new List<string>();
-
-            int r = 0;
-            for (; r < Regions.Length; r++)
-            {
-                Region currentReg = Regions[r];
-                char var = (char)(startVar + r);
-
-                constraints.Add($"0<={var}<{FPGA.Design.GetLength(0)}");
-
-                // Sum distances for io connections to current region
-                foreach (var io in currentReg.IOConns)
-                    equation += $"{io.Wires}|{(int)io.Point.Y}-{var}|+";
-
-                // Sum distances for region interconnections
-                for (int i = 0; i < InterConn.GetLength(0); i++)
-                {
-                    char connRegVar = (char)(startVar + i);
-                    int wires = InterConn[r, i];
-
-                    if (wires > 0)
-                        equation += $"{wires}|{var}-{connRegVar}|+";
-                }
-            }
-
-            constraints.Insert(0, equation.TrimEnd('+'));
-
-            return constraints;
+            return new string[] { modFile, runFile, result };
         }
     }
 }

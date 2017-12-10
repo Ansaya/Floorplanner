@@ -1,18 +1,16 @@
-﻿using Floorplanner.Models;
-using Floorplanner.Models.Components;
+﻿using Floorplanner.Models.Components;
 using Floorplanner.Models.Solver;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Floorplanner.ProblemParser
 {
     public static class DesignParser
     {
-        public static readonly string WolframAPIKey = "7YPPW7-Q635EGLP9L";
+        public static readonly string AmplPath = @".\Ampl\ampl.exe";
+
+        public static readonly string AmplDir = @".\Ampl";
+
+        public static readonly string RunIncipit = "reset;option solver couenne;model '{0}';solve;";
 
         public readonly static char _separator = char.Parse(" ");
 
