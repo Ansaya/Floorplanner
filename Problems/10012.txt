@@ -1,0 +1,105 @@
+10012
+400000 0 4
+0 0 0
+35 106
+5
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- F F F F F F F F F F F F F F F F F C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B F F F F F F F C C D C C B C C C C C B C C D C C C B C C C C -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C B C C C C -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C B C C C C -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C B C C C C -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C B C C C C -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C B C C C C -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C F F F F C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C F F F F C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C F F F F C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C F F F F C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C F F F F C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+- C C C C B C C D C C C C D C C B C C C C B C C D C C C C C C C C D C C B C C C C C C C C C C C C C C C C C - C C B C C D C C C C C C C C C C C C C B C C C C C C - C C D C C B C C C C C B C C D C C C F F F F F -
+0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0
+0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0
+25
+P 40 0 0 0
+P 137 0 0 0
+P 146 0 0 0
+P 112 15 15 2
+1 20 6
+1 25 16
+P 110 10 20 2
+106 35 18
+82 29 7
+P 120 15 15 4
+82 14 2
+82 23 2
+82 13 16
+106 19 8
+P 107 15 10 0
+P 113 15 14 0
+P 85 15 15 0
+P 89 20 10 0
+P 98 5 5 0
+P 112 0 0 0
+P 70 15 15 0
+P 90 10 5 0
+P 79 15 10 0
+P 49 10 10 0
+P 60 0 0 0
+P 60 0 0 0
+P 38 5 5 4
+106 5 4
+55 2 6
+106 6 17
+55 3 3
+P 43 5 0 0
+P 40 0 0 0
+P 20 0 0 0
+P 10 5 5 0
+P 20 0 0 0
+P 15 5 0 0
+0 0 7 0 0 0 0 15 0 0 0 16 13 0 0 0 0 14 0 0 0 0 0 0 0
+4 0 0 0 5 0 0 0 0 0 10 0 0 0 4 0 10 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 13 0 0 0 0 0 0 13 0 0 0 0 0 10 15 0 0 0 0
+0 0 0 0 0 0 0 0 8 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0
+0 0 0 3 0 8 0 0 0 0 0 0 0 0 0 3 0 0 12 0 0 0 0 7 0
+0 14 0 0 0 0 0 0 0 5 0 0 0 0 0 0 0 0 0 0 0 8 0 0 13
+0 0 0 0 0 0 0 0 0 0 0 0 0 12 0 6 0 0 0 0 0 0 0 0 0
+0 0 0 6 4 0 0 0 0 0 0 11 0 0 18 0 0 4 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 14 0 0 0 12 0 0 0 14 0 0
+0 0 0 0 0 0 6 0 0 0 0 0 0 17 0 10 0 0 0 0 0 12 0 0 7
+0 0 8 0 0 0 7 0 0 0 0 0 0 0 0 3 0 0 0 18 0 0 0 11 0
+0 17 0 0 0 0 0 0 0 0 0 0 13 0 0 0 0 11 0 0 8 0 0 0 0
+0 0 16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8 0 0 0 0 0
+0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 13 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 16 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0
+0 0 0 0 0 0 18 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 15 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6
+0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 9 0 0 0 0 0 0 0 0 0 0 0

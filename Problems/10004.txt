@@ -1,0 +1,33 @@
+10004
+91200 20 0
+8 56 56
+10 31
+5
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+- C C C B C C D C C - C C C C - C C B C C C D C C B C C C C -
+0 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0
+0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 0 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0
+6
+S 41 6 4 0
+S 41 6 6 0
+S 34 6 4 0
+S 19 3 2 0
+S 14 2 1 0
+S 9 1 0 3
+11 9 1
+16 1 1
+16 4 1
+0 0 1 0 0 0
+1 0 0 1 0 0
+0 0 0 0 1 1
+0 0 0 0 0 0
+0 1 0 0 0 3
+1 0 0 3 0 0
