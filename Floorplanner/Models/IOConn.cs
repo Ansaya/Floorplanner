@@ -1,13 +1,22 @@
-﻿using Floorplanner.ProblemParser;
+﻿using Floorplanner.Models.Solver;
+using Floorplanner.ProblemParser;
 using System.IO;
 
 namespace Floorplanner.Models
 {
     public class IOConn
     {
-        public int Column { get; private set; }
+        public Point Point
+        {
+            get
+            {
+                return new Point(_column, _row);
+            }
+        }
 
-        public int Row { get; private set; }
+        private int _column;
+
+        private int _row;
 
         public int Wires { get; private set; }
 
@@ -17,8 +26,8 @@ namespace Floorplanner.Models
 
             return new IOConn()
             {
-                Column = int.Parse(colRowWire[0]) - 1,
-                Row = int.Parse(colRowWire[1]) - 1,
+                _column = int.Parse(colRowWire[0]) - 1,
+                _row = int.Parse(colRowWire[1]) - 1,
                 Wires = int.Parse(colRowWire[2])
             };
         }

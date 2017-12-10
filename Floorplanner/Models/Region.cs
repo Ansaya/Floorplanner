@@ -11,6 +11,10 @@ namespace Floorplanner.Models
 
         public IReadOnlyDictionary<BlockType, int> Resources { get; private set; }
 
+        public double CLBratioBRAM { get; private set; }
+
+        public double CLBratioDSP { get; private set; }
+
         public IOConn[] IOConns { get; private set; }
 
         public static Region Parse(TextReader atRegion)
@@ -27,6 +31,8 @@ namespace Floorplanner.Models
             res[BlockType.DSP] = int.Parse(regionData[3]);
 
             region.Resources = res;
+            region.CLBratioBRAM = (double)res[BlockType.CLB] / res[BlockType.BRAM];
+            region.CLBratioDSP = (double)res[BlockType.CLB] / res[BlockType.DSP];
 
             int ios = int.Parse(regionData[4]);
 

@@ -32,10 +32,10 @@ namespace Floorplanner.Solver
         {
             List<string> xDistanceEqAndAss = GetXDistanceEquationAndAssumptions();
             List<string> yDistanceEqAndAss = GetYDistanceEquationAndAssumptions();
-            
+
             WAQueryResult xResult = _waService.RunQuery(xDistanceEqAndAss.Aggregate((a, b) => $"{a},{b}"));
             WAQueryResult yResult = _waService.RunQuery(yDistanceEqAndAss.Aggregate((a, b) => $"{a},{b}"));
-            
+
             int[] xCoord = GetCoords(xResult);
             int[] yCoord = GetCoords(yResult);
 
@@ -72,7 +72,7 @@ namespace Floorplanner.Solver
 
                 // Sum distances for io connections to current region
                 foreach (var io in currentReg.IOConns)
-                    equation += $"{io.Wires}|{io.Column}-{var}|+";
+                    equation += $"{io.Wires}|{(int)io.Point.X}-{var}|+";
 
                 // Sum distances for region interconnections
                 for (int i = 0; i < InterConn.GetLength(0); i++)
@@ -107,7 +107,7 @@ namespace Floorplanner.Solver
 
                 // Sum distances for io connections to current region
                 foreach (var io in currentReg.IOConns)
-                    equation += $"{io.Wires}|{io.Row}-{var}|+";
+                    equation += $"{io.Wires}|{(int)io.Point.Y}-{var}|+";
 
                 // Sum distances for region interconnections
                 for (int i = 0; i < InterConn.GetLength(0); i++)

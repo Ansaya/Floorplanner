@@ -1,4 +1,6 @@
-﻿using Floorplanner.ProblemParser;
+﻿using Floorplanner.Models.Solver;
+using Floorplanner.ProblemParser;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Floorplanner.Models.Components
@@ -25,6 +27,24 @@ namespace Floorplanner.Models.Components
         /// </summary>
         public int TileHeight { get; private set; }
 
+        public double CLBratioBRAM { get; private set; }
+
+        public double CLBratioDSP { get; private set; }
+
+        public IEnumerable<Point> Points
+        {
+            get
+            {
+                IList<Point> covered = new List<Point>();
+
+                for (int y = 0; y < Design.GetLength(0); y++)
+                    for (int x = 0; x < Design.GetLength(1); x++)
+                        covered.Add(new Point(x, y));
+
+                return covered;
+            }
+        }
+
         public static FPGA Parse(TextReader atFPGADesign)
         {
             FPGA fpga = new FPGA();
@@ -39,12 +59,23 @@ namespace Floorplanner.Models.Components
 
             // Initialize all FPGA blocks
             fpga.Design = new BlockType[rows, cols];
+
+            IDictionary<BlockType, int> res = DesignParser.EmptyResources();
+
             for (int r = 0; r < rows; r++)
             {
                 string[] currentRow = atFPGADesign.ReadLine().Split(DesignParser._separator);
                 for (int c = 0; c < cols; c++)
-                    fpga.Design[r, c] = (BlockType)currentRow[c][0];                    
+                {
+                    BlockType bt = (BlockType)currentRow[c][0];
+
+                    fpga.Design[r, c] = bt;
+                    res[bt]++;
+                }                  
             }
+
+            fpga.CLBratioBRAM = (double)res[BlockType.CLB] / res[BlockType.BRAM];
+            fpga.CLBratioDSP = (double)res[BlockType.CLB] / res[BlockType.DSP];
 
             // Read reconfigurable regions boundaries
             string[] lrecCol = atFPGADesign.ReadLine().Split(DesignParser._separator);
@@ -60,6 +91,20 @@ namespace Floorplanner.Models.Components
             }
 
             return fpga;
+        }
+
+        public bool Contains(Area a)
+        {
+            return a.TopLeft.X >= 0 
+                && a.TopLeft.Y >= 0 
+                && a.TopLeft.X + a.Width <= Design.GetLength(1) 
+                && a.TopLeft.Y + a.Height <= Design.GetLength(0);
+        }
+
+        public bool Contains(Point p)
+        {
+            return (p.X >= 0 || p.X < Design.GetLength(1))
+                && (p.Y >= 0 || p.Y < Design.GetLength(0));
         }
     }
 }

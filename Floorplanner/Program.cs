@@ -47,11 +47,22 @@ namespace Floorplanner
 
             Floorplan optimiezdPlan = s.Solve();
 
+            Console.WriteLine("Solution was computed succesfully!");
+
+            int planScore = optimiezdPlan.GetScore();
+
+            Console.WriteLine($"Optimized plan has scored {planScore} points.");
+
             TextWriter outPipe = Console.Out;
             if (_outputFile != null)
                 outPipe = File.CreateText(_outputFile);
 
-            optimiezdPlan.PrintOn(Console.Out);            
+            optimiezdPlan.PrintOn(outPipe);
+
+            if(_outputFile != null)
+                outPipe.Close();
+
+            Console.ReadKey();
         }
     }
 }

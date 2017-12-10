@@ -1,5 +1,6 @@
 ﻿using Floorplanner.Models;
 using Floorplanner.Models.Components;
+using Floorplanner.Models.Solver;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,6 +26,11 @@ namespace Floorplanner.ProblemParser
                 { BlockType.Forbidden, 0 },
                 { BlockType.Null, 0 }
             };
+        }
+
+        public static Direction Opposite(this Direction direction)
+        {
+            return (Direction)(((int)direction + 2) % 4);
         }
     }
 }
