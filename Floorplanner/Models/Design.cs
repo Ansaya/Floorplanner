@@ -52,8 +52,7 @@ namespace Floorplanner.Models
             int xScore = GetScore(x);
             int yScore = GetScore(y);
 
-            return xScore == yScore ? 0
-                : xScore > yScore ? 1
+            return xScore > yScore ? 1
                 : -1;
         }
 

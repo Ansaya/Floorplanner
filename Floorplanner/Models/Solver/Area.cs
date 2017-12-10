@@ -263,8 +263,7 @@ namespace Floorplanner.Models.Solver
         /// <returns>True if the two areas are overlapping or are in incorrect position because of reconfigurable regions constraints, false else.</returns>
         public bool IsOverlapping(Area other)
         {
-            if (FPGA != other.FPGA || this == other)
-                return false;
+            if (this == other) return false;
 
             IEnumerable<int> thisTiles = coveredTiles();
             IEnumerable<int> otherTiles = other.coveredTiles();
@@ -275,23 +274,22 @@ namespace Floorplanner.Models.Solver
                 return false;
 
             bool notXOverlapping = (TopLeft.X + Width) < other.TopLeft.X || (other.TopLeft.X + other.Width) < TopLeft.X;
-
-            if (other.Region.Type == RegionType.Reconfigurable && Region.Type == RegionType.Reconfigurable)
-                return notXOverlapping;
-
             bool notYOverlapping = (TopLeft.Y + Height) < other.TopLeft.Y || (other.TopLeft.Y + other.Height) < TopLeft.Y;
 
-            return notXOverlapping || notYOverlapping;
+            if (other.Region.Type == RegionType.Static || Region.Type == RegionType.Static)
+                return notYOverlapping || notXOverlapping;
+
+            return notXOverlapping;
         }
 
         /// <summary>
         /// Tiles covered by this area.
         /// </summary>
-        /// <returns>Covered tiles row numbers. (Indexing from 1)</returns>
+        /// <returns>Covered tiles row numbers.</returns>
         public IEnumerable<int> coveredTiles()
         {
-            int startTile =(int) TopLeft.X / FPGA.TileHeight + 1;
-            int endTile = ((int)TopLeft.X + Width) / FPGA.TileHeight + 1;
+            int startTile = ((int)TopLeft.Y + 1) / FPGA.TileHeight;
+            int endTile = ((int)TopLeft.Y + Height + 1) / FPGA.TileHeight;
 
             return Enumerable.Range(startTile, endTile - startTile + 1).ToArray();
         } 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 namespace Floorplanner.ArgParser
 {
@@ -36,9 +35,7 @@ namespace Floorplanner.ArgParser
 
         public int CompareTo(ArgOption other)
         {
-            return other.Optional && Optional ? 0 :
-                other.Optional && !Optional ? -1 :
-                1;
+            return !other.Optional ? -1 : 1;
         }
     }
 }

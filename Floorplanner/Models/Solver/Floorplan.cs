@@ -42,9 +42,9 @@ namespace Floorplanner.Models.Solver
             int totalArea = Areas.Select(a => a.Score(Design.Costs)).Aggregate((a, b) => a + b);
 
             double totalWireDistance = Areas
-                .Select(a => a.Region.IOConns
+                .Select(a => a.Region.IOConns.Any() ? a.Region.IOConns
                     .Select(io => io.Point.ManhattanFrom(a.Center) * io.Wires)
-                    .Aggregate(sum))
+                    .Aggregate(sum) : 0)
                 .Aggregate(sum);
 
             IList<Area> designOrderedAreas = new List<Area>();
@@ -92,7 +92,7 @@ namespace Floorplanner.Models.Solver
 
             return a.Resources[BlockType.Forbidden] == 0 
                 && (!confirmedAreas.Any()
-                || confirmedAreas.Select(a.IsOverlapping).Aggregate((o1, o2) => o1 || o2));
+                || !confirmedAreas.Select(a.IsOverlapping).Aggregate((o1, o2) => o1 || o2));
         }
     }
 }

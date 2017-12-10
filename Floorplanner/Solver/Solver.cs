@@ -247,7 +247,7 @@ namespace Floorplanner.Solver
             {
                 _inside.Remove(Current);
 
-                if (!_inside.Any())
+                if (_inside.Count() < 10)
                     return false;
 
                 while(!_inside.Contains(Current))

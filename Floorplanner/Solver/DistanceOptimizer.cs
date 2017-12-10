@@ -6,7 +6,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
-using System.Threading;
 
 namespace Floorplanner.Solver
 {
@@ -78,7 +77,6 @@ namespace Floorplanner.Solver
 
         private string[] DistanceAmplFiles(Func<IOConn, int> getCoord, int fpgaMaxCoord)
         {
-            int startVar = 'a';
             string equation = "minimize Distance: ";
             string constraints = String.Empty;
             string displays = DesignParser.RunIncipit + "display ";
@@ -86,7 +84,7 @@ namespace Floorplanner.Solver
             for (int r = 0; r < Regions.Length; r++)
             {
                 Region currentReg = Regions[r];
-                char var = (char)(startVar + r);
+                string var = $"c{r}";
 
                 constraints += $"var {var} integer, >= 0, <= {fpgaMaxCoord};";
                 displays += $"{var}, ";
@@ -98,7 +96,7 @@ namespace Floorplanner.Solver
                 // Sum distances for region interconnections
                 for (int i = 0; i < InterConn.GetLength(0); i++)
                 {
-                    char connRegVar = (char)(startVar + i);
+                    string connRegVar = $"c{i}";
                     int wires = InterConn[r, i];
 
                     if (wires > 0)
