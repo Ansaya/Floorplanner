@@ -33,7 +33,7 @@ namespace Floorplanner.Models
             design.Regions = new Region[regions];
 
             for (int i = 0; i < regions; i++)
-                design.Regions[i] = Region.Parse(designFileContent);
+                design.Regions[i] = Region.Parse(designFileContent, i);
 
             design.RegionWires = new int[regions, regions];
 
@@ -49,26 +49,35 @@ namespace Floorplanner.Models
 
         public int Compare(Region x, Region y)
         {
-            int xScore = GetScore(x);
-            int yScore = GetScore(y);
+            double xScore = GetScore(x);
+            double yScore = GetScore(y);
 
-            return xScore > yScore ? 1
-                : -1;
+            return xScore >= yScore ? -1
+                : 1;
         }
 
-        public int GetScore(Region x)
+        /// <summary>
+        /// Calculate an internal score for the given region, useful to create a hierarchy among regions.
+        /// </summary>
+        /// <param name="x">Region to calculate score for.</param>
+        /// <returns>Internal region score.</returns>
+        public double GetScore(Region x)
         {
             int rIndex = 0;
 
             while (Regions[rIndex] != x) rIndex++;
 
-            int interConnScore = 0;
+            double interConnScore = x.IOConns.Length == 0 ? 0
+                : x.IOConns.Sum(conn => conn.Wires);
 
             for (int i = 0; i < RegionWires.GetLength(1); i++)
                 interConnScore += RegionWires[rIndex, i];
 
-            return x.Resources.Sum(pari => pari.Value * Costs.ResourceWeight[pari.Key]) * Costs.Area
-                + (x.IOConns.Sum(conn => conn.Wires) + interConnScore) * Costs.WireLength;
+            double resourcesScore = x.Resources[BlockType.CLB] * Costs.ResourceWeight[BlockType.CLB]
+                + x.Resources[BlockType.BRAM] * FPGA.CLBratioBRAM * Costs.ResourceWeight[BlockType.BRAM]
+                + x.Resources[BlockType.DSP] * FPGA.CLBratioDSP * Costs.ResourceWeight[BlockType.DSP];
+
+            return resourcesScore * Costs.Area + interConnScore * Costs.WireLength;
         }
     }
 }

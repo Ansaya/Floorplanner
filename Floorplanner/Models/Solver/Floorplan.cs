@@ -12,27 +12,28 @@ namespace Floorplanner.Models.Solver
 
         public IList<Area> Areas { get; private set; }
 
+        /// <summary>
+        /// Return all FPGA points not covered by confirmed areas
+        /// </summary>
         public IEnumerable<Point> FreePoints
         {
             get
             {
-                IList<Point> fpga = new List<Point>(Design.FPGA.Points);
+                IList<Point> fpgaPoints = new List<Point>(Design.FPGA.Points);
                 IEnumerable<Area> confirmedAreas = Areas.Where(a => a.IsConfirmed);
 
-                if (!confirmedAreas.Any()) return fpga;
+                if (confirmedAreas.Any())
+                    foreach (var p in confirmedAreas.Select(a => a.Points).Aggregate(Enumerable.Concat))
+                        fpgaPoints.Remove(p);
 
-                foreach (var a in confirmedAreas)
-                    foreach (var p in a.Points)
-                        fpga.Remove(p);
-
-                return fpga;
+                return fpgaPoints;
             }
         }
 
         public Floorplan(Design planFor)
         {
             Design = planFor;
-            Areas = new SortedSet<Area>(Design.Regions.Select(r => new Area(Design.FPGA, r)), this).ToList();
+            Areas = Design.Regions.Select(r => new Area(Design.FPGA, r)).ToList();
         }
 
         public int GetScore()
@@ -46,21 +47,17 @@ namespace Floorplanner.Models.Solver
                     .Select(io => io.Point.ManhattanFrom(a.Center) * io.Wires)
                     .Aggregate(sum) : 0)
                 .Aggregate(sum);
-
-            IList<Area> designOrderedAreas = new List<Area>();
-            for(int r = 0; r < Design.Regions.Length; r++)
-                designOrderedAreas.Add(Areas.Single(a => a.Region == Design.Regions[r]));
-
-            for(int r = 0; r < designOrderedAreas.Count; r++)
+            
+            foreach(Area a in Areas)
             {
-                Point current = designOrderedAreas[r].Center;
+                Point current = a.Center;
 
                 for(int i = 0; i < Design.RegionWires.GetLength(1); i++)
                 {
-                    int wires = Design.RegionWires[r, i];
+                    int wires = Design.RegionWires[a.ID, i];
 
                     if (wires != 0)
-                        totalWireDistance += designOrderedAreas[i].Center.ManhattanFrom(current) * wires;
+                        totalWireDistance += Areas[i].Center.ManhattanFrom(current) * wires;
                 }
             }
 
@@ -75,8 +72,8 @@ namespace Floorplanner.Models.Solver
         {
             tw.WriteLine(Design.ID);
 
-            foreach (var a in Areas)
-                tw.WriteLine($"{(int)a.TopLeft.X + 1} {(int)a.TopLeft.Y + 1} {a.Width + 1} {a.Height + 1}");
+            foreach (Area a in Areas)
+                tw.WriteLine($"{(int)a.TopLeft.X + 1} {(int)a.TopLeft.Y + 1} {a.Width + 1} {a.Height + 1}");                
         }
 
         public int Compare(Area x, Area y) => Design.Compare(x.Region, y.Region);
@@ -91,8 +88,8 @@ namespace Floorplanner.Models.Solver
             IEnumerable<Area> confirmedAreas = Areas.Where(ar => ar.IsConfirmed);
 
             return a.Resources[BlockType.Forbidden] == 0 
-                && (!confirmedAreas.Any()
-                || !confirmedAreas.Select(a.IsOverlapping).Aggregate((o1, o2) => o1 || o2));
+                && !(confirmedAreas.Any()
+                && confirmedAreas.Select(a.IsOverlapping).Aggregate((o1, o2) => o1 || o2));
         }
     }
 }

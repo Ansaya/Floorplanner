@@ -7,6 +7,8 @@ namespace Floorplanner.Models
 {
     public class Region
     {
+        public int ID { get; private set; }
+
         public RegionType Type { get; private set; }
 
         public IReadOnlyDictionary<BlockType, int> Resources { get; private set; }
@@ -17,9 +19,10 @@ namespace Floorplanner.Models
 
         public IOConn[] IOConns { get; private set; }
 
-        public static Region Parse(TextReader atRegion)
+        public static Region Parse(TextReader atRegion, int regionID)
         {
             Region region = new Region();
+            region.ID = regionID;
 
             string[] regionData = atRegion.ReadLine().Split(DesignParser._separator);
             

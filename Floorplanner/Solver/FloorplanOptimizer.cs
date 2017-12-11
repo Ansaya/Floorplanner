@@ -3,7 +3,6 @@ using Floorplanner.Models.Components;
 using Floorplanner.Models.Solver;
 using Floorplanner.ProblemParser;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -20,34 +19,36 @@ namespace Floorplanner.Solver
 
         public Floorplan Solve()
         {
-            DistanceOptimizer dOpt = new DistanceOptimizer(Design);
+            Floorplan fPlan = new Floorplan(Design);
+
+            DistanceOptimizer dOpt = new DistanceOptimizer(Design.Regions, Design.RegionWires, Design.FPGA);
             Console.WriteLine("Optimizing region center points...");
 
             // Get optimal region centers to minimize wire weight
             Point[] idealCenters = dOpt.GetOptimizedCenters();
 
-            Floorplan fPlan = new Floorplan(Design);
-
             int fpgaHeight = Design.FPGA.Design.GetLength(0);
             int fpgaWidth = Design.FPGA.Design.GetLength(1);
 
-            Console.WriteLine("Optimizing region area...");
+            Console.WriteLine("Generating regions hierarchy...");
+
+            IList<Area> orderedAreas = new SortedSet<Area>(fPlan.Areas, fPlan).ToList();
+
+            Console.WriteLine("Starting regions area optimization...");
 
             // Try place and expand each area nearest possible to computed center points
-            for(int i = 0; i < idealCenters.Length; i++)
+            foreach(Area area in orderedAreas)
             {
-                Console.WriteLine($"Optimizing region {i}...");
+                Console.WriteLine($"Optimizing region {area.ID}...");
 
-                Area area = fPlan.Areas[i];
-                List<Point> toSearch = new List<Point>(fPlan.FreePoints);
-                IEnumerator<Point> spiralPoint = new SpiralPoint(idealCenters[i], toSearch);
-
-                
+                Point idealCenter = idealCenters[area.ID];
+                NearestPointEnumerator nearestPoint = new NearestPointEnumerator(idealCenter, fPlan.FreePoints);
+                                
                 while (!area.IsConfirmed)
                 {
 
                     // Find a suitable place to expand current area
-                    SpiralPlace(area, fPlan, spiralPoint);
+                    NearestPlace(area, fPlan, nearestPoint);
 
                     // Expand area filling all available space
                     Expand(area, fPlan);
@@ -57,8 +58,8 @@ namespace Floorplanner.Solver
                     // aren't enough remove explored points from list and continue
                     if (!ShrinkToValidReconfigurable(area) || !area.IsSufficient)
                     {
-                        foreach (var p in area.Points) toSearch.Remove(p);
-                        spiralPoint.MoveNext();
+                        nearestPoint.Skip(area.Points);
+                        nearestPoint.MoveNext();
                         continue;
                     }
 
@@ -68,13 +69,13 @@ namespace Floorplanner.Solver
                     bool heightWidth = (double)area.Region.Resources[BlockType.BRAM] / area.FPGA.TileHeight > fpgaTiles * 0.35
                         || (double)area.Region.Resources[BlockType.DSP] / area.FPGA.TileHeight > fpgaTiles * 0.35;
 
-                    ShrinkOn(heightWidth, area, idealCenters[i]);
-                    ShrinkOn(!heightWidth, area, idealCenters[i]);
+                    ShrinkOn(heightWidth, area, idealCenter);
+                    ShrinkOn(!heightWidth, area, idealCenter);
                     area.IsConfirmed = true;
                 }
             }
 
-            Console.WriteLine("Region area optimization completed successfully.");
+            Console.WriteLine("Region areas optimization completed successfully.");
 
             return fPlan;
         }
@@ -113,7 +114,7 @@ namespace Floorplanner.Solver
                         a.Width = oldWidth;
                         if (done == true) return;
                     }
-                } while (a.IsSufficient);
+                } while (a.IsSufficient && a.Width > 0);
             }
             else
             {
@@ -122,14 +123,14 @@ namespace Floorplanner.Solver
 
                 Direction shrinkDir = upDown ? Direction.Down : Direction.Up;
 
-                while (a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && a.IsSufficient) ;
+                while (a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && a.IsSufficient && a.Height > 0) ;
 
                 if (!a.IsSufficient)
                     a.TryShape(Models.Solver.Action.Expand, shrinkDir);
 
                 shrinkDir = shrinkDir.Opposite();
 
-                while (a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && a.IsSufficient) ;
+                while (a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && a.IsSufficient && a.Height > 0) ;
 
                 if (!a.IsSufficient)
                     a.TryShape(Models.Solver.Action.Expand, shrinkDir);
@@ -199,118 +200,24 @@ namespace Floorplanner.Solver
         /// <param name="fPlan">Reference floorplan.</param>
         /// <param name="pointSequence">Point sequence to be searched.</param>
         /// <exception cref="Exception">If a place for the given area was not found.</exception>
-        public void SpiralPlace(Area a, Floorplan fPlan, IEnumerator<Point> pointSequence)
+        public void NearestPlace(Area a, Floorplan fPlan, IEnumerator<Point> pointSequence)
         {
+            Exception error = new Exception("Can't place an area in current floorplan. Sorry for the inconvenience.");
+
+            if (!pointSequence.MoveNext())
+                throw error;
+
             a.Width = 0;
             a.Height = 0;
+            a.MoveTo(pointSequence.Current);
 
             // While current point is inside the FPGA and i can't place the area search
             // for a suitable point
             while (!fPlan.CanPlace(a) && pointSequence.MoveNext())
                 a.MoveTo(pointSequence.Current);
 
-            if(!fPlan.CanPlace(a))
-                throw new Exception("Can't place an area in current floorplan. Sorry for the inconvenience.");
-        }
-
-        private class SpiralPoint : IEnumerator<Point>
-        {
-            private IList<Point> _inside;
-
-            private Point _start;
-
-            private IEnumerator<Direction> _spiral = new SpiralDirection();
-
-            public Point Current { get; private set; }
-
-            object IEnumerator.Current => this;
-
-            public SpiralPoint(Point start, IList<Point> inside)
-            {
-                _inside = inside;
-                _inside.Remove(start);
-                _start = new Point(start);
-                Current = new Point(start);
-            }
-
-            public void Dispose()
-            {
-                
-            }
-
-            public bool MoveNext()
-            {
-                _inside.Remove(Current);
-
-                if (_inside.Count() < 10)
-                    return false;
-
-                while(!_inside.Contains(Current))
-                {
-                    _spiral.MoveNext();
-                    Current.Move(_spiral.Current, 1);
-                }
-
-                return true;
-            }
-
-            public void Reset()
-            {
-                Current = _start;
-                _spiral = new SpiralDirection();
-            }
-        }
-
-        public class SpiralDirection : IEnumerator<Direction>
-        {
-            private int _level = 0;
-
-            private int _pos = 0;
-
-            private int _index = 0;
-
-            private Direction[] list = (Direction[])Enum.GetValues(typeof(Direction));
-
-            public Direction Current => list[_index];
-
-            object IEnumerator.Current => this;
-
-            public void Dispose()
-            {
-                
-            }
-
-            public bool MoveNext()
-            {
-                // Step until level 
-                if (_pos < _level)
-                    _pos++;
-                else
-                {
-                    // Reset position
-                    _pos = 0;
-
-                    // Turn to next direction
-                    if (_index < list.Length - 1)
-                        _index++;
-                    else
-                        _index = 0;
-
-                    // Change level every two turns
-                    if (_index % 2 == 0)
-                        _level++;
-                }
-
-                // There is always a following step in an outgoing spiral
-                return true;
-            }
-
-            public void Reset()
-            {
-                _level = 1;
-                _pos = 0;
-                _index = 0;
-            }
+            if (!fPlan.CanPlace(a))
+                throw error;
         }
     }
 }

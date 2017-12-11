@@ -6,36 +6,42 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Floorplanner.Solver
 {
     public class DistanceOptimizer
     {
-        public Region[] Regions { get => _design.Regions; }
+        private readonly IEnumerable<Region> _regions;
 
-        public int[,] InterConn { get => _design.RegionWires; }
+        private readonly int[,] _interConns;
 
-        public FPGA FPGA { get => _design.FPGA; }
-
-        private readonly Design _design;
+        private readonly FPGA _fpga;
         
-        public DistanceOptimizer(Design design)
+        public DistanceOptimizer(IEnumerable<Region> regions, int[,] regionConns, FPGA fpga)
         {
-            _design = design;
+            _regions = regions;
+            _interConns = regionConns;
+            _fpga = fpga;
         }
 
         public Point[] GetOptimizedCenters()
         {
             int[] xCoord = null;
             int[] yCoord = null;
-            
-            RunAmplFor(
-                DistanceAmplFiles(io => (int)io.Point.X, FPGA.Design.GetLength(1)), 
-                out xCoord);
+                        
+            Task xCompute = new Task(() => RunAmplFor(
+                DistanceAmplFiles(io => (int)io.Point.X, _fpga.Design.GetLength(1)), 
+                out xCoord));
 
-            RunAmplFor(
-                DistanceAmplFiles(io => (int)io.Point.Y, FPGA.Design.GetLength(0)), 
-                out yCoord);
+            Task yCompute = new Task(() => RunAmplFor(
+                DistanceAmplFiles(io => (int)io.Point.Y, _fpga.Design.GetLength(0)), 
+                out yCoord));
+
+            xCompute.Start();
+            yCompute.Start();
+            Task.WaitAll(xCompute, yCompute);
 
             if (xCoord == null || yCoord == null)
                 throw new Exception("There was an error parsing AMPL results.");
@@ -57,7 +63,8 @@ namespace Floorplanner.Solver
                 FileName = @"Ampl\ampl.exe",
                 WorkingDirectory = @"Ampl",
                 Arguments = modRunOutPaths[1],
-                UseShellExecute = false
+                UseShellExecute = false,
+                RedirectStandardOutput = true
             });
 
             ampl.WaitForExit();
@@ -66,9 +73,9 @@ namespace Floorplanner.Solver
 
             string[] resultLines = File.ReadAllLines(modRunOutPaths[2]);
 
-            coords = new int[Regions.Count()];
+            coords = new int[_regions.Count()];
 
-            for (int i = 0; i < Regions.Count(); i++)
+            for (int i = 0; i < _regions.Count(); i++)
                 coords[i] = int.Parse(resultLines[i].Split('=')[1]);
 
             foreach (var f in modRunOutPaths)
@@ -81,9 +88,9 @@ namespace Floorplanner.Solver
             string constraints = String.Empty;
             string displays = DesignParser.RunIncipit + "display ";
             
-            for (int r = 0; r < Regions.Length; r++)
+            for (int r = 0; r < _regions.Count(); r++)
             {
-                Region currentReg = Regions[r];
+                Region currentReg = _regions.ElementAt(r);
                 string var = $"c{r}";
 
                 constraints += $"var {var} integer, >= 0, <= {fpgaMaxCoord};";
@@ -94,10 +101,10 @@ namespace Floorplanner.Solver
                     equation += $"abs({getCoord(io)}-{var})*{io.Wires}+";
 
                 // Sum distances for region interconnections
-                for (int i = 0; i < InterConn.GetLength(0); i++)
+                for (int i = 0; i < _interConns.GetLength(0); i++)
                 {
                     string connRegVar = $"c{i}";
-                    int wires = InterConn[r, i];
+                    int wires = _interConns[r, i];
 
                     if (wires > 0)
                         equation += $"abs({var}-{connRegVar})*{wires}+";

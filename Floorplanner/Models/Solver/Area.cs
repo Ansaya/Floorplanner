@@ -8,6 +8,8 @@ namespace Floorplanner.Models.Solver
 {
     public class Area
     {
+        public int ID { get => Region.ID; }
+
         public bool IsConfirmed { get; set; } = false;
 
         /// <summary>

@@ -52,6 +52,7 @@
     <Compile Include="Models\Components\FPGATest.cs" />
     <Compile Include="Models\Solver\AreaTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Solver\NearestPointEnumeratorTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

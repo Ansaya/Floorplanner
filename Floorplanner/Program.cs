@@ -47,7 +47,7 @@ namespace Floorplanner
                     return;
                 }
 
-                inputs.Add(_inputFile);
+                Solve(_inputFile, _outputFile);
             }
 
             if(_inputDir != null)
@@ -65,22 +65,32 @@ namespace Floorplanner
                 }
 
                 inputs = Directory.GetFiles(_inputDir).Select(Path.GetFileName).ToList();
-            }
-            
-            foreach(var f in inputs)
-            {
-                string outFile = Path.Combine(_outputDir, f);
-                string inputFile = Path.Combine(_inputDir, f);
+                IList<string> solverResults = new List<string>();
 
-                Solve(inputFile, outFile);
+                foreach (var f in inputs)
+                {
+                    Console.WriteLine();
+                    string outFile = Path.Combine(_outputDir, f);
+                    string inputFile = Path.Combine(_inputDir, f);
+
+                    string result = Solve(inputFile, outFile);
+
+                    solverResults.Add(result);
+                }
+
+                Console.WriteLine("\n\nAll problems have been computed.\n");
+                foreach (string solveOut in solverResults)
+                    Console.WriteLine(solveOut);
             }
 
+            Console.WriteLine();
             Console.WriteLine("Press a key to exit...");
             Console.ReadKey();
         }
 
-        private static void Solve(string inputFile, string outputFile)
+        private static string Solve(string inputFile, string outputFile = null)
         {
+            Console.WriteLine($"Solving problem {Path.GetFileNameWithoutExtension(inputFile)}");
             Console.WriteLine("Loading design requests and boundaries from file...");
 
             Design problem = Design.Parse(File.OpenText(inputFile));
@@ -99,7 +109,7 @@ namespace Floorplanner
             {
                 Console.WriteLine($"Error during optimization process...");
                 Console.WriteLine(e.Message);
-                return;
+                return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: computation infeasible.";
             }
 
             Console.WriteLine("Solution was computed succesfully!");
@@ -110,7 +120,7 @@ namespace Floorplanner
             if(planScore <= 0)
             {
                 Console.WriteLine("Score is negative. Not writing solution.");
-                return;
+                return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: negative score.";
             }
 
             TextWriter outPipe = Console.Out;
@@ -124,6 +134,8 @@ namespace Floorplanner
                 outPipe.Close();
                 Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(outputFile)}'.");
             }
+
+            return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore}";
         }
     }
 }
