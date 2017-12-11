@@ -13,6 +13,16 @@ namespace Floorplanner.Models.Components
         public BlockType[,] Design { get; private set; }
 
         /// <summary>
+        /// Maximum valid x value
+        /// </summary>
+        public int Xmax { get => Design.GetLength(1) - 1; }
+
+        /// <summary>
+        /// Maximum valid y value
+        /// </summary>
+        public int Ymax { get => Design.GetLength(0) - 1; }
+
+        /// <summary>
         /// True where a reconfigurable region can start
         /// </summary>
         public bool[] LRecCol { get; private set; }
@@ -95,16 +105,14 @@ namespace Floorplanner.Models.Components
 
         public bool Contains(Area a)
         {
-            return a.TopLeft.X >= 0 
-                && a.TopLeft.Y >= 0 
-                && a.TopLeft.X + a.Width <= Design.GetLength(1) 
-                && a.TopLeft.Y + a.Height <= Design.GetLength(0);
+            return 0 <= a.TopLeft.X && a.TopLeft.X + a.Width <= Xmax
+                && 0 <= a.TopLeft.Y && a.TopLeft.Y + a.Height <= Ymax;
         }
 
         public bool Contains(Point p)
         {
-            return (p.X >= 0 || p.X < Design.GetLength(1))
-                && (p.Y >= 0 || p.Y < Design.GetLength(0));
+            return 0 <= p.X && p.X <= Xmax
+                && 0 <= p.Y && p.Y <= Ymax;
         }
     }
 }

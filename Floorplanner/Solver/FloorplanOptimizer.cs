@@ -9,11 +9,11 @@ using System.Linq;
 
 namespace Floorplanner.Solver
 {
-    public class Solver
+    public class FloorplanOptimizer
     {
         public Design Design { get; private set; }
 
-        public Solver(Design toPlan)
+        public FloorplanOptimizer(Design toPlan)
         {
             Design = toPlan;
         }
@@ -42,9 +42,13 @@ namespace Floorplanner.Solver
                 List<Point> toSearch = new List<Point>(fPlan.FreePoints);
                 IEnumerator<Point> spiralPoint = new SpiralPoint(idealCenters[i], toSearch);
 
-                // Find a suitable place to expand current area
-                while (SpiralPlace(area, fPlan, spiralPoint))
+                
+                while (!area.IsConfirmed)
                 {
+
+                    // Find a suitable place to expand current area
+                    SpiralPlace(area, fPlan, spiralPoint);
+
                     // Expand area filling all available space
                     Expand(area, fPlan);
 
@@ -67,12 +71,7 @@ namespace Floorplanner.Solver
                     ShrinkOn(heightWidth, area, idealCenters[i]);
                     ShrinkOn(!heightWidth, area, idealCenters[i]);
                     area.IsConfirmed = true;
-                    break;
                 }
-
-                // If area couldn't be placed throw exception
-                if (!area.IsConfirmed)
-                    throw new Exception("Can't place an area in current floorplan. Sorry for the inconvenience.");
             }
 
             Console.WriteLine("Region area optimization completed successfully.");
@@ -194,28 +193,24 @@ namespace Floorplanner.Solver
         }
 
         /// <summary>
-        /// Find nearst possible point from given sequence where the specified area can be placed on the floorplan
+        /// Find first point in the sequence where the specified area can be placed on the floorplan.
         /// </summary>
         /// <param name="a">Area to be placed.</param>
         /// <param name="fPlan">Reference floorplan.</param>
-        /// <param name="spiralPoint">Point sequence to be searched.</param>
-        /// <returns>True if a place was found, false if enumerator exipred before a position was found</returns>
-        public bool SpiralPlace(Area a, Floorplan fPlan, IEnumerator<Point> spiralPoint)
+        /// <param name="pointSequence">Point sequence to be searched.</param>
+        /// <exception cref="Exception">If a place for the given area was not found.</exception>
+        public void SpiralPlace(Area a, Floorplan fPlan, IEnumerator<Point> pointSequence)
         {
-            a.TopLeft = spiralPoint.Current;
             a.Width = 0;
             a.Height = 0;
 
             // While current point is inside the FPGA and i can't place the area search
             // for a suitable point
-            while (!fPlan.CanPlace(a) && spiralPoint.MoveNext()) ;
+            while (!fPlan.CanPlace(a) && pointSequence.MoveNext())
+                a.MoveTo(pointSequence.Current);
 
-            if (fPlan.CanPlace(a))
-                a.TopLeft = new Point(a.TopLeft);
-            else
-                return false;
-
-            return true;
+            if(!fPlan.CanPlace(a))
+                throw new Exception("Can't place an area in current floorplan. Sorry for the inconvenience.");
         }
 
         private class SpiralPoint : IEnumerator<Point>

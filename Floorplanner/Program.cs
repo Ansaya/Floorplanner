@@ -1,6 +1,7 @@
 ﻿using Floorplanner.ArgParser;
 using Floorplanner.Models;
 using Floorplanner.Models.Solver;
+using Floorplanner.Solver;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -86,7 +87,7 @@ namespace Floorplanner
 
             Console.WriteLine("Design constraints loaded succesfully.\nNow computing solution...");
 
-            Solver.Solver s = new Solver.Solver(problem);
+            FloorplanOptimizer s = new FloorplanOptimizer(problem);
 
             Floorplan optimiezdPlan;
 

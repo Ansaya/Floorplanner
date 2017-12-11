@@ -1,9 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Floorplanner.Models.Solver
 {
-    public class Point : IEquatable<Point>
+#pragma warning disable CS0660 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.Equals(object o)
+#pragma warning disable CS0661 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.GetHashCode()
+    public class Point
+#pragma warning restore CS0661 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.GetHashCode()
+#pragma warning restore CS0660 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.Equals(object o)
     {
         public double X { get; set; }
 
@@ -62,29 +65,9 @@ namespace Floorplanner.Models.Solver
             }
         }
 
-        public override bool Equals(object obj)
-        {
-            return obj is Point && Equals(obj);
-        }
-
-        public bool Equals(Point other)
-        {
-            return other != null &&
-                   X == other.X &&
-                   Y == other.Y;
-        }
-
-        public override int GetHashCode()
-        {
-            var hashCode = 1861411795;
-            hashCode = hashCode * -1521134295 + X.GetHashCode();
-            hashCode = hashCode * -1521134295 + Y.GetHashCode();
-            return hashCode;
-        }
-
         public static bool operator ==(Point point1, Point point2)
         {
-            return EqualityComparer<Point>.Default.Equals(point1, point2);
+            return point1.X == point2.X && point2.Y == point1.Y;
         }
 
         public static bool operator !=(Point point1, Point point2)

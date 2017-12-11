@@ -22,7 +22,7 @@ namespace Floorplanner.Models.Solver
 
         public RegionType Type { get => Region.Type; }
 
-        public Point TopLeft { get; set; } = new Point(0, 0);
+        public Point TopLeft { get; private set; } = new Point(0, 0);
 
         /// <summary>
         /// Area width counting from the block after X.
@@ -46,15 +46,24 @@ namespace Floorplanner.Models.Solver
         }
 
         /// <summary>
-        /// Area surface in blocks.
+        /// Tile rows covered by this area.
         /// </summary>
-        public int Value
+        /// <returns>Covered tiles' row number.</returns>
+        public IEnumerable<int> TileRows
         {
             get
             {
-                return (Width + 1) * (Height + 1);
+                int startTile = (int)TopLeft.Y / FPGA.TileHeight;
+                int endTile = ((int)TopLeft.Y + Height) / FPGA.TileHeight;
+
+                return Enumerable.Range(startTile, endTile - startTile + 1).ToArray();
             }
         }
+
+        /// <summary>
+        /// Area surface in blocks.
+        /// </summary>
+        public int Value { get =>  (Width + 1) * (Height + 1); }
 
         /// <summary>
         /// Resources covered by this area on the fpga.
@@ -99,6 +108,9 @@ namespace Floorplanner.Models.Solver
             }
         }
         
+        /// <summary>
+        /// Return all points contained in this area
+        /// </summary>
         public IEnumerable<Point> Points
         {
             get
@@ -125,66 +137,43 @@ namespace Floorplanner.Models.Solver
             Region = associated;
         }
 
+        public Area(FPGA container, Region associated, Point topLeft)
+        {
+            FPGA = container;
+            Region = associated;
+            TopLeft = new Point(topLeft);
+        }
+
         public int Score(Costs costs)
         {
             return Resources.Select(pair => pair.Value * costs.ResourceWeight[pair.Key]).Aggregate((c1, c2) => c1 + c2);
         }
 
         /// <summary>
-        /// Move the area in the given direction if possible (not going out of FPGA bounds).
+        /// Move the area to the given point.
+        /// If the new position exceeds FPGA bounds an exception is thrown.
         /// </summary>
-        /// <param name="direction">Movement direction.</param>
-        /// <returns>True if the move was performed, false if FPGA bound have been reached.</returns>
-        public bool TryMove(Direction direction)
+        /// <param name="topLeft">Top left point to move the area to.</param>
+        /// <exception cref="ArgumentOutOfRangeException">If the given point place the area or part of it out of FPGA bounds.</exception>
+        public void MoveTo(Point topLeft)
         {
-            switch(direction)
-            {
-                case Direction.Up:
-                    if(TopLeft.Y > 0)
-                    {
-                        TopLeft.Y--;
-                        return true;
-                    }
-                    break;
-
-                case Direction.Right:
-                    if(TopLeft.X + Width < FPGA.Design.GetLength(1) - 1)
-                    {
-                        TopLeft.X++;
-                        return true;
-                    }
-                    break;
-
-                case Direction.Down:
-                    if(TopLeft.Y + Height < FPGA.Design.GetLength(0) - 1)
-                    {
-                        TopLeft.Y++;
-                        return true;
-                    }
-                    break;
-
-                case Direction.Left:
-                    if(TopLeft.X > 0)
-                    {
-                        TopLeft.X--;
-                        return true;
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-
-            return false;
+            if (!TryMoveTo(topLeft))
+                throw new ArgumentOutOfRangeException($"Point ({topLeft.X}, {topLeft.Y}) is not valid " +
+                    $"as top left corner for this area (W: {Width}, H: {Height})");
         }
 
+        /// <summary>
+        /// Move the area to the given point if possible.
+        /// Only FPGA bounds are checked, no validity or sufficency check is performed.
+        /// </summary>
+        /// <param name="topLeft">Top left point to move the area to.</param>
+        /// <returns>True if moved the area successfuccly, false else.</returns>
         public bool TryMoveTo(Point topLeft)
         {
             Point oldTopLeft = TopLeft;
-            TopLeft = topLeft;
+            TopLeft = new Point(topLeft);
 
-            if (FPGA.Contains(this))
-                return true;
+            if (FPGA.Contains(this)) return true;
 
             TopLeft = oldTopLeft;
 
@@ -195,28 +184,31 @@ namespace Floorplanner.Models.Solver
         /// Expand or shrink this area in a given direction if possible
         /// </summary>
         /// <param name="action">Action to perform.</param>
-        /// <param name="direction">Edge to be moved</param>
+        /// <param name="direction">Edge to be moved.</param>
+        /// <param name="steps">Moving steps from current edge position.</param>
         /// <returns>True if the action was succesfull, false if FPGA bounds have been reached.</returns>
-        public bool TryShape(Action action, Direction direction)
+        public bool TryShape(Action action, Direction direction, int steps = 1)
         {
-            if(action == Action.Expand && TryMove(direction))
-            {
+            Point topLeft = new Point(TopLeft);
+            topLeft.Move(direction, steps);
 
+            if(action == Action.Expand && TryMoveTo(topLeft))
+            {
                 switch(direction)
                 {
                     case Direction.Up:
-                        Height++;
+                        Height += steps;
                         break;
                     case Direction.Right:
-                        TopLeft.X--;
-                        Width++;
+                        TopLeft.X -= steps;
+                        Width += steps;
                         break;
                     case Direction.Down:
-                        TopLeft.Y--;
-                        Height++;
+                        TopLeft.Y -= steps;
+                        Height += steps;
                         break;
                     case Direction.Left:
-                        Width++;
+                        Width += steps;
                         break;
                     default:
                         break;
@@ -229,22 +221,22 @@ namespace Floorplanner.Models.Solver
                 switch (direction)
                 {
                     case Direction.Up:
-                        if (Height == 0) return false;
-                        TopLeft.Y++;
-                        Height--;
+                        if (Height < steps) return false;
+                        TopLeft.Y += steps;
+                        Height -= steps;
                         break;
                     case Direction.Right:
-                        if (Width == 0) return false;
-                        Width--;
+                        if (Width < steps) return false;
+                        Width -= steps;
                         break;
                     case Direction.Down:
-                        if (Height == 0) return false;
-                        Height--;
+                        if (Height < steps) return false;
+                        Height -= steps;
                         break;
                     case Direction.Left:
-                        if (Width == 0) return false;
-                        TopLeft.X++;
-                        Width--;
+                        if (Width < steps) return false;
+                        TopLeft.X += steps;
+                        Width -= steps;
                         break;
                     default:
                         break;
@@ -265,34 +257,25 @@ namespace Floorplanner.Models.Solver
         {
             if (this == other) return false;
 
-            IEnumerable<int> thisTiles = coveredTiles();
-            IEnumerable<int> otherTiles = other.coveredTiles();
+            IEnumerable<int> thisTiles = TileRows;
+            IEnumerable<int> otherTiles = other.TileRows;
 
-            bool onSameTiles = thisTiles.Intersect(otherTiles).Any();
+            bool sameTileRow = thisTiles.Intersect(otherTiles).Any();
 
-            if (!onSameTiles)
-                return false;
+            if (!sameTileRow) return false;
 
-            bool notXOverlapping = (TopLeft.X + Width) < other.TopLeft.X || (other.TopLeft.X + other.Width) < TopLeft.X;
-            bool notYOverlapping = (TopLeft.Y + Height) < other.TopLeft.Y || (other.TopLeft.Y + other.Height) < TopLeft.Y;
+            bool xOverlapping = (TopLeft.X <= other.TopLeft.X && other.TopLeft.X <= (TopLeft.X + Width))
+                || (other.TopLeft.X <= TopLeft.X && TopLeft.X <= (other.TopLeft.X + other.Width));
+
+            bool yOverlapping = (TopLeft.Y <= other.TopLeft.Y && other.TopLeft.Y <= (TopLeft.Y + Height))
+                || (other.TopLeft.Y <= TopLeft.Y && TopLeft.Y <= (other.TopLeft.Y + other.Height));
 
             if (other.Region.Type == RegionType.Static || Region.Type == RegionType.Static)
-                return notYOverlapping || notXOverlapping;
+                return yOverlapping && xOverlapping;
 
-            return notXOverlapping;
+            return xOverlapping;
         }
-
-        /// <summary>
-        /// Tiles covered by this area.
-        /// </summary>
-        /// <returns>Covered tiles row numbers.</returns>
-        public IEnumerable<int> coveredTiles()
-        {
-            int startTile = ((int)TopLeft.Y + 1) / FPGA.TileHeight;
-            int endTile = ((int)TopLeft.Y + Height + 1) / FPGA.TileHeight;
-
-            return Enumerable.Range(startTile, endTile - startTile + 1).ToArray();
-        } 
+        
     }
 
     public enum Direction
