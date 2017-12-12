@@ -85,6 +85,17 @@ namespace Floorplanner.Models.Solver
         }
 
         /// <summary>
+        /// Area/Region resource ratio for this area and associated region.
+        /// Values are computed on each call, so they are always up to date.
+        /// </summary>
+        public IReadOnlyDictionary<BlockType, double> ResourceRatio
+        {
+            get => Resources.ToDictionary(
+                pair => pair.Key,
+                pair => (double)pair.Value / Region.Resources[pair.Key]);
+        }
+
+        /// <summary>
         /// True if this area has enough resources of each type to contain its associated region.
         /// </summary>
         public bool IsSufficient
@@ -252,6 +263,7 @@ namespace Floorplanner.Models.Solver
 
         /// <summary>
         /// Check if two areas are overlapping.
+        /// No validity check is performed before comparison.
         /// </summary>
         /// <param name="other">Area to check overlapping with.</param>
         /// <returns>True if the two areas are overlapping or are in incorrect position because of reconfigurable regions constraints, false else.</returns>

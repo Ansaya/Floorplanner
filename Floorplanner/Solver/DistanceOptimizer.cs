@@ -44,7 +44,7 @@ namespace Floorplanner.Solver
             Task.WaitAll(xCompute, yCompute);
 
             if (xCoord == null || yCoord == null)
-                throw new Exception("There was an error parsing AMPL results.");
+                throw new OptimizationException("There was an error parsing AMPL results.");
 
             Point[] centers = new Point[xCoord.Length];
 
@@ -69,7 +69,7 @@ namespace Floorplanner.Solver
 
             ampl.WaitForExit();
             if (ampl.ExitCode != 0)
-                throw new Exception("Ampl process returned non zero.");
+                throw new OptimizationException("Ampl process returned non zero.");
 
             string[] resultLines = File.ReadAllLines(modRunOutPaths[2]);
 

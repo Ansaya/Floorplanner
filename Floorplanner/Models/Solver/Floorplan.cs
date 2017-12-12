@@ -79,7 +79,8 @@ namespace Floorplanner.Models.Solver
         public int Compare(Area x, Area y) => Design.Compare(x.Region, y.Region);
 
         /// <summary>
-        /// Check if given area is not overlapping with other areas in this floorplan and doesn't contain forbidden blocks
+        /// Check if given area is not overlapping with other areas in this floorplan and doesn't contain forbidden blocks.
+        /// Area.IsOverlapping function is used in placeability computatio.
         /// </summary>
         /// <param name="a">Area to check.</param>
         /// <returns>True if no overlap is found, false if given area overlaps with another.</returns>

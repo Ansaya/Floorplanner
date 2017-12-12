@@ -61,6 +61,7 @@
     <Compile Include="Solver\DistanceOptimizer.cs" />
     <Compile Include="Solver\NearestPointEnumerator.cs" />
     <Compile Include="Solver\FloorplanOptimizer.cs" />
+    <Compile Include="Solver\OptimizationException.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

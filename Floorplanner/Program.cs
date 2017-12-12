@@ -105,7 +105,7 @@ namespace Floorplanner
             {
                 optimiezdPlan = s.Solve();
             }
-            catch (Exception e)
+            catch (OptimizationException e)
             {
                 Console.WriteLine($"Error during optimization process...");
                 Console.WriteLine(e.Message);

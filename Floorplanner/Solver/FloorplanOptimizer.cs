@@ -41,6 +41,9 @@ namespace Floorplanner.Solver
             {
                 Console.WriteLine($"Optimizing region {area.ID}...");
 
+                // TODO: possible improvement - run center points optimization after confirming each area to calculate 
+                //                              new solution according to current placing choices
+
                 Point idealCenter = idealCenters[area.ID];
                 NearestPointEnumerator nearestPoint = new NearestPointEnumerator(idealCenter, fPlan.FreePoints);
                                 
@@ -52,25 +55,22 @@ namespace Floorplanner.Solver
 
                     // Expand area filling all available space
                     Expand(area, fPlan);
+                    
+                    // Remove all newly explored 
+                    nearestPoint.Skip(area.Points);
 
                     // Validate the area and check if there are sufficent resources
                     // If validation isn't possible or left resources after validation
-                    // aren't enough remove explored points from list and continue
+                    // aren't enough continue searching for a valid area
                     if (!ShrinkToValidReconfigurable(area) || !area.IsSufficient)
-                    {
-                        nearestPoint.Skip(area.Points);
-                        nearestPoint.MoveNext();
                         continue;
-                    }
 
-                    // Compute bramTiles/FPGAtiles and dspTiles/FPGAtiles ratios to define a majour
-                    // shrinking direction
-                    double fpgaTiles = (double)fpgaHeight / area.FPGA.TileHeight;
-                    bool heightWidth = (double)area.Region.Resources[BlockType.BRAM] / area.FPGA.TileHeight > fpgaTiles * 0.35
-                        || (double)area.Region.Resources[BlockType.DSP] / area.FPGA.TileHeight > fpgaTiles * 0.35;
+                    // TODO: possible improvement - run Reduce in parallel among all available areas, according 
+                    //                              to NearestPlace function, then take the lesser demanding result
 
-                    ShrinkOn(heightWidth, area, idealCenter);
-                    ShrinkOn(!heightWidth, area, idealCenter);
+                    // Reduce maximized area trying to lower cost as much as possible
+                    Reduce(area, idealCenter, fPlan);
+
                     area.IsConfirmed = true;
                 }
             }
@@ -80,61 +80,79 @@ namespace Floorplanner.Solver
             return fPlan;
         }
 
-        public void ShrinkOn(bool heightWidth, Area a, Point idealCenter)
+        /// <summary>
+        /// Reduce given area cost as much as possible also trying to near area center to ideal one.
+        /// </summary>
+        /// <param name="area">Area to reduce.</param>
+        /// <param name="idealCenter">Ideal center point for given area.</param>
+        /// <param name="floorPlan">Floorplan whom given area belongs to.</param>
+        /// <returns>Reduced area cost.</returns>
+        private int Reduce(Area area, Point idealCenter, Floorplan floorPlan)
         {
-            if(heightWidth)
+            // Initialize explored shrinking direction vector
+            IDictionary<Direction, bool> exploredShrinkDir = new Dictionary<Direction, bool>();
+            foreach (Direction d in Enum.GetValues(typeof(Direction)))
+                exploredShrinkDir.Add(d, false);
+
+            do
             {
-                bool done = false;
-                int oldTopLeftX = (int)a.TopLeft.X;
-                int oldWidth = a.Width;
+                // Store current area position and dimensions
+                Point oldTopLeft = new Point(area.TopLeft);
+                int oldHeight = area.Height;
+                int oldWidth = area.Width;
+
+                // Chose a shrinking axis looking at area/region BRAM's and DSP's ratios
+                // and check if chose axis hasn't been completely explored yet
+                bool widthHeightShrink = (area.ResourceRatio[BlockType.BRAM] < 1.5
+                    || area.ResourceRatio[BlockType.DSP] < 1.5)
+                    && (!exploredShrinkDir[Direction.Up] || !exploredShrinkDir[Direction.Down]);
+                
+                Direction shrinkDir;
+                
+                // Chose a shrinking direction on chosen axis if possible
+                if (!widthHeightShrink 
+                    && (!exploredShrinkDir[Direction.Left] || !exploredShrinkDir[Direction.Right]))
+                    shrinkDir = idealCenter.X > area.Center.X ? Direction.Left : Direction.Right;
+                else
+                    shrinkDir = idealCenter.Y > area.Center.Y ? Direction.Down : Direction.Up;
+               
+                // If wanted direction has already been explored chose opposite one
+                if (exploredShrinkDir[shrinkDir]) shrinkDir = shrinkDir.Opposite();
+
+                // NOTE: at this point a valid direction is there for shure, else the loop
+                //       would have exited
 
                 do
                 {
-                    Direction shrinkDir = idealCenter.X > a.TopLeft.X ? Direction.Left : Direction.Right;
-
-                    while (!done && a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && !a.IsValid) ;
-
-                    if (!a.IsValid || !a.IsSufficient)
+                    // Try reducing on chosen direction
+                    // If reduction isn't possible or leads to an area with insufficient resources
+                    if (!area.TryShape(Models.Solver.Action.Shrink, shrinkDir) || !area.IsSufficient)
                     {
-                        a.TopLeft.X = oldTopLeftX;
-                        a.Width = oldWidth;
-                        done = true;
+                        // Set current direction as explored
+                        exploredShrinkDir[shrinkDir] = true;
+
+                        // Restore area placement and dimensions before wrong shrinking
+                        area.MoveTo(oldTopLeft);
+                        area.Height = oldHeight;
+                        area.Width = oldWidth;
+
+                        // And break
+                        break;
                     }
 
-                    while (done && a.TryShape(Models.Solver.Action.Shrink, shrinkDir.Opposite()) && !a.IsValid) ;
+                } while (!area.IsValid);
 
-                    if (a.IsValid && a.IsSufficient)
-                    {
-                        oldTopLeftX = (int)a.TopLeft.X;
-                        oldWidth = a.Width;
-                    }
-                    else
-                    {
-                        a.TopLeft.X = oldTopLeftX;
-                        a.Width = oldWidth;
-                        if (done == true) return;
-                    }
-                } while (a.IsSufficient && a.Width > 0);
-            }
-            else
-            {
-                bool upDown = a.FPGA.TileHeight - (a.TopLeft.Y % a.FPGA.TileHeight)
-                            < (a.TopLeft.Y + a.Height) % a.FPGA.TileHeight;
+                // I'm not sure code up to here is correct, so better throw an exception
+                // if something wrong after shrink loop
+                if (!area.IsValid || !area.IsSufficient)
+                    throw new Exception("Reduce function behaviour unexpected.");
 
-                Direction shrinkDir = upDown ? Direction.Down : Direction.Up;
+                // TODO: check distance from ideal center to improve area if it is too long in width
+                // TODO: check distance from ideal center to improve area if it is too high in height
 
-                while (a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && a.IsSufficient && a.Height > 0) ;
+            } while (exploredShrinkDir.Values.Any(explored => !explored));
 
-                if (!a.IsSufficient)
-                    a.TryShape(Models.Solver.Action.Expand, shrinkDir);
-
-                shrinkDir = shrinkDir.Opposite();
-
-                while (a.TryShape(Models.Solver.Action.Shrink, shrinkDir) && a.IsSufficient && a.Height > 0) ;
-
-                if (!a.IsSufficient)
-                    a.TryShape(Models.Solver.Action.Expand, shrinkDir);
-            }
+            return area.Score(floorPlan.Design.Costs);
         }
 
         /// <summary>
@@ -144,7 +162,7 @@ namespace Floorplanner.Solver
         /// </summary>
         /// <param name="a">Area to shrink until valid.</param>
         /// <returns>True if a valid area has been obtained, false else.</returns>
-        public bool ShrinkToValidReconfigurable(Area a)
+        private bool ShrinkToValidReconfigurable(Area a)
         {
             if (a.Type == RegionType.Reconfigurable)
             {
@@ -171,12 +189,12 @@ namespace Floorplanner.Solver
         }
 
         /// <summary>
-        /// Expand given area on specified floorplan until reaching maximim occupied surface without overlapping with other areas.
-        /// No checks on area validity.
+        /// Expand given area on specified floorplan until reaching maximim occupied surface without 
+        /// overlapping with other areas. No checks on area validity is performed.
         /// </summary>
         /// <param name="a">Area to be expanded.</param>
         /// <param name="fPlan">Floorplan to refer to.</param>
-        public void Expand(Area a, Floorplan fPlan)
+        private void Expand(Area a, Floorplan fPlan)
         {
             Direction[] directions = (Direction[])Enum.GetValues(typeof(Direction));
 
@@ -199,10 +217,11 @@ namespace Floorplanner.Solver
         /// <param name="a">Area to be placed.</param>
         /// <param name="fPlan">Reference floorplan.</param>
         /// <param name="pointSequence">Point sequence to be searched.</param>
-        /// <exception cref="Exception">If a place for the given area was not found.</exception>
-        public void NearestPlace(Area a, Floorplan fPlan, IEnumerator<Point> pointSequence)
+        /// <exception cref="OptimizationException">If a place for the given area was not found.</exception>
+        private void NearestPlace(Area a, Floorplan fPlan, IEnumerator<Point> pointSequence)
         {
-            Exception error = new Exception("Can't place an area in current floorplan. Sorry for the inconvenience.");
+            OptimizationException error = 
+                new OptimizationException("Can't place an area in current floorplan. Sorry for the inconvenience.");
 
             if (!pointSequence.MoveNext())
                 throw error;
