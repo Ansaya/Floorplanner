@@ -1,8 +1,6 @@
 ﻿using Floorplanner.Models.Components;
-using Floorplanner.ProblemParser;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace Floorplanner.Models
 {
@@ -22,7 +20,7 @@ namespace Floorplanner.Models
         {
             Design design = new Design();
 
-            design.ID = designFileContent.ReadLine().Trim(DesignParser._separator);
+            design.ID = designFileContent.ReadLine().Trim(FPHelper._separator);
 
             design.Costs = Costs.Parse(designFileContent);
 
@@ -39,7 +37,7 @@ namespace Floorplanner.Models
 
             for(int i = 0; i < regions; i++)
             {
-                string[] currentRow = designFileContent.ReadLine().Split(DesignParser._separator);
+                string[] currentRow = designFileContent.ReadLine().Split(FPHelper._separator);
                 for (int j = 0; j < regions; j++)
                     design.RegionWires[i, j] = int.Parse(currentRow[j]);
             }
@@ -49,35 +47,44 @@ namespace Floorplanner.Models
 
         public int Compare(Region x, Region y)
         {
-            double xScore = GetScore(x);
-            double yScore = GetScore(y);
+            if (x.ID == y.ID) return 0;
 
-            return xScore >= yScore ? -1
+            double xCost = GetRegionWeight(x);
+            double yCost = GetRegionWeight(y);
+
+            if(xCost == yCost)
+            {
+                xCost -= x.ID;
+                yCost -= y.ID;
+            }
+
+            return xCost > yCost ? -1
                 : 1;
         }
 
         /// <summary>
-        /// Calculate an internal score for the given region, useful to create a hierarchy among regions.
+        /// Calculate an internal weight for the given region, useful to create a hierarchy among regions.
+        /// The more weight, the more a region is resource demanding
         /// </summary>
         /// <param name="x">Region to calculate score for.</param>
-        /// <returns>Internal region score.</returns>
-        public double GetScore(Region x)
+        /// <returns>Internal region weight.</returns>
+        public double GetRegionWeight(Region x)
         {
-            int rIndex = 0;
+            if (x.IOConns.Length > 0)
+                return double.MaxValue - x.ID;
 
-            while (Regions[rIndex] != x) rIndex++;
-
-            double interConnScore = x.IOConns.Length == 0 ? 0
-                : x.IOConns.Sum(conn => conn.Wires);
+            double interConnScore = 0;
 
             for (int i = 0; i < RegionWires.GetLength(1); i++)
-                interConnScore += RegionWires[rIndex, i];
+                interConnScore += RegionWires[x.ID, i];
 
             double resourcesScore = x.Resources[BlockType.CLB] * Costs.ResourceWeight[BlockType.CLB]
                 + x.Resources[BlockType.BRAM] * FPGA.CLBratioBRAM * Costs.ResourceWeight[BlockType.BRAM]
                 + x.Resources[BlockType.DSP] * FPGA.CLBratioDSP * Costs.ResourceWeight[BlockType.DSP];
 
-            return resourcesScore * Costs.Area + interConnScore * Costs.WireLength;
+            double recMult = x.Type == RegionType.Reconfigurable ? 1.2 : 1;
+
+            return recMult * resourcesScore * Costs.Area;// + interConnScore * Costs.WireLength * 0.5;
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Floorplanner.Models.Components;
-using Floorplanner.ProblemParser;
 using System.Collections.Generic;
 using System.IO;
 
@@ -17,8 +16,8 @@ namespace Floorplanner.Models
 
         public static Costs Parse(TextReader atCosts)
         {
-            string[] scoreAreaWirelength = atCosts.ReadLine().Split(DesignParser._separator);
-            string[] clbBRAMdlpCosts = atCosts.ReadLine().Split(DesignParser._separator);
+            string[] scoreAreaWirelength = atCosts.ReadLine().Split(FPHelper._separator);
+            string[] clbBRAMdlpCosts = atCosts.ReadLine().Split(FPHelper._separator);
 
             var resW = new Dictionary<BlockType, int>()
             {

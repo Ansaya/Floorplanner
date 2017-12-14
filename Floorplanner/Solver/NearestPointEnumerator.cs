@@ -18,7 +18,8 @@ namespace Floorplanner.Solver
         /// <param name="ends">Points to be ordered.</param>
         public NearestPointEnumerator(Point origin, IEnumerable<Point> ends)
         {
-            _sortedPoints = new SortedSet<Point>(ends, new DistanceComparer(origin, DistanceComparePolicy.NearestFirst)).ToList();
+            _sortedPoints = ends.OrderBy(p => p.ManhattanFrom(origin)).ToList();
+            Current = null;
         }
 
         /// <summary>

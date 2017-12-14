@@ -1,5 +1,4 @@
 ﻿using Floorplanner.Models.Components;
-using Floorplanner.ProblemParser;
 using System.Collections.Generic;
 using System.IO;
 
@@ -11,7 +10,7 @@ namespace Floorplanner.Models
 
         public RegionType Type { get; private set; }
 
-        public IReadOnlyDictionary<BlockType, int> Resources { get; private set; }
+        public IDictionary<BlockType, int> Resources { get; private set; }
 
         public double CLBratioBRAM { get; private set; }
 
@@ -24,11 +23,11 @@ namespace Floorplanner.Models
             Region region = new Region();
             region.ID = regionID;
 
-            string[] regionData = atRegion.ReadLine().Split(DesignParser._separator);
+            string[] regionData = atRegion.ReadLine().Split(FPHelper._separator);
             
             region.Type = (RegionType)regionData[0][0];
 
-            Dictionary<BlockType, int> res = DesignParser.EmptyResources();
+            Dictionary<BlockType, int> res = FPHelper.EmptyResources();
             res[BlockType.CLB] = int.Parse(regionData[1]);
             res[BlockType.BRAM] = int.Parse(regionData[2]);
             res[BlockType.DSP] = int.Parse(regionData[3]);

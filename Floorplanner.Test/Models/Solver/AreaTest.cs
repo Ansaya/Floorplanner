@@ -71,7 +71,7 @@ namespace Floorplanner.Test.Models.Solver
         {
             checkCorners(area1, 2, 0, 7, 9);
 
-            IReadOnlyDictionary<BlockType, int> areaRes = area1.Resources;
+            IDictionary<BlockType, int> areaRes = area1.Resources;
 
             Assert.AreEqual(40, areaRes[BlockType.CLB]);
             Assert.AreEqual(10, areaRes[BlockType.DSP]);

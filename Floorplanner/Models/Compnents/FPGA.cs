@@ -1,5 +1,5 @@
 ﻿using Floorplanner.Models.Solver;
-using Floorplanner.ProblemParser;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -11,7 +11,7 @@ namespace Floorplanner.Models.Components
         /// FPGA block types for each position.
         /// </summary>
         public BlockType[,] Design { get; private set; }
-
+        
         /// <summary>
         /// Maximum valid x value
         /// </summary>
@@ -40,27 +40,19 @@ namespace Floorplanner.Models.Components
         public double CLBratioBRAM { get; private set; }
 
         public double CLBratioDSP { get; private set; }
+        
+        private IEnumerable<Point> _validPoints;
 
-        public IEnumerable<Point> Points
-        {
-            get
-            {
-                IList<Point> covered = new List<Point>();
+        public IEnumerable<Point> ValidPoints { get => _validPoints; }
 
-                for (int y = 0; y < Design.GetLength(0); y++)
-                    for (int x = 0; x < Design.GetLength(1); x++)
-                        covered.Add(new Point(x, y));
-
-                return covered;
-            }
-        }
-
+        private IDictionary<BlockType, int>[,] _resourcesFromOrigin;
+        
         public static FPGA Parse(TextReader atFPGADesign)
         {
             FPGA fpga = new FPGA();
 
             // Read rows and columns number
-            string[] rowCOL = atFPGADesign.ReadLine().Split(DesignParser._separator);
+            string[] rowCOL = atFPGADesign.ReadLine().Split(FPHelper._separator);
             int rows = int.Parse(rowCOL[0]);
             int cols = int.Parse(rowCOL[1]);
 
@@ -70,26 +62,63 @@ namespace Floorplanner.Models.Components
             // Initialize all FPGA blocks
             fpga.Design = new BlockType[rows, cols];
 
-            IDictionary<BlockType, int> res = DesignParser.EmptyResources();
+            IDictionary<BlockType, int> res = FPHelper.EmptyResources();
+            IList<Point> validPoints = new List<Point>();
+            IDictionary<BlockType, int>[,] resFromOrigin = new Dictionary<BlockType, int>[cols + 1,rows + 1];
+            for(int i = 0; i < Math.Max(rows, cols) + 1; i++)
+            {
+                if (i <= rows)
+                    resFromOrigin[0, i] = FPHelper.EmptyResources();
+
+                if(i <= cols)
+                    resFromOrigin[i, 0] = FPHelper.EmptyResources();
+            }
 
             for (int r = 0; r < rows; r++)
             {
-                string[] currentRow = atFPGADesign.ReadLine().Split(DesignParser._separator);
+                string[] currentRow = atFPGADesign.ReadLine().Split(FPHelper._separator);
                 for (int c = 0; c < cols; c++)
                 {
                     BlockType bt = (BlockType)currentRow[c][0];
 
                     fpga.Design[r, c] = bt;
                     res[bt]++;
+
+                    // Area valid points pre-enumeration
+                    if (bt != BlockType.Forbidden)
+                        validPoints.Add(new Point(c, r));
+
+                    // Area resources pre-calculation
+                    if(r == 0)
+                    {
+                        if(c == 0)
+                            resFromOrigin[1, 1] = FPHelper.EmptyResources();
+                        else
+                            resFromOrigin[c + 1, 1] = new Dictionary<BlockType, int>(resFromOrigin[c, 1]);
+                    }
+                    else
+                    {
+                        if (c == 0)
+                            resFromOrigin[1, r + 1] = new Dictionary<BlockType, int>(resFromOrigin[1, r]);
+                        else
+                            resFromOrigin[c + 1, r + 1] = resFromOrigin[c, r + 1]
+                                .Merge(resFromOrigin[c + 1, r], FPHelper.add)
+                                .Merge(resFromOrigin[c, r], FPHelper.sub);
+                    }
+
+                    resFromOrigin[c + 1, r + 1][bt]++;
                 }                  
             }
+
+            fpga._validPoints = validPoints;
+            fpga._resourcesFromOrigin = resFromOrigin;
 
             fpga.CLBratioBRAM = (double)res[BlockType.CLB] / res[BlockType.BRAM];
             fpga.CLBratioDSP = (double)res[BlockType.CLB] / res[BlockType.DSP];
 
             // Read reconfigurable regions boundaries
-            string[] lrecCol = atFPGADesign.ReadLine().Split(DesignParser._separator);
-            string[] rrecCol = atFPGADesign.ReadLine().Split(DesignParser._separator);
+            string[] lrecCol = atFPGADesign.ReadLine().Split(FPHelper._separator);
+            string[] rrecCol = atFPGADesign.ReadLine().Split(FPHelper._separator);
 
             // Initialize all reconfigurable regions boundaries
             fpga.LRecCol = new bool[cols];
@@ -101,6 +130,24 @@ namespace Floorplanner.Models.Components
             }
 
             return fpga;
+        }
+        
+        /// <summary>
+        /// Return resource quantity for the specified area.
+        /// </summary>
+        /// <param name="a">Area to get resources for.</param>
+        /// <returns>Area available resources.</returns>
+        public IDictionary<BlockType, int> ResourcesFor(Area a)
+        {
+            int startX = (int)a.TopLeft.X;
+            int startY = (int)a.TopLeft.Y;
+            int endX = startX + a.Width + 1;
+            int endY = startY + a.Height + 1;
+
+            return _resourcesFromOrigin[startX, startY]
+                .Merge(_resourcesFromOrigin[endX, endY], FPHelper.add)
+                .Merge(_resourcesFromOrigin[endX, startY], FPHelper.sub)
+                .Merge(_resourcesFromOrigin[startX, endY], FPHelper.sub);
         }
 
         public bool Contains(Area a)

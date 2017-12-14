@@ -30,12 +30,41 @@ namespace Floorplanner.Test.Models.Components
         [TestMethod]
         public void GetPoints()
         {
-            IEnumerable<Point> fpgaPoints = fpga.Points;
+            IEnumerable<Point> fpgaPoints = fpga.ValidPoints;
 
+            // In test case there are no forbidden points
             Assert.AreEqual((fpga.Xmax + 1) * (fpga.Ymax + 1), fpgaPoints.Count());
 
             foreach (Point p in fpgaPoints)
                 checkPointInside(p, 0, 0, 30, 9);
+        }
+
+        [TestMethod]
+        public void ResourcesFor()
+        {
+            Area area = new Area(fpga, null, new Point(0, 0));
+            area.Width = 4;
+            area.Height = 4;
+
+            IDictionary<BlockType, int> areaRes = fpga.ResourcesFor(area);
+
+            Assert.AreEqual(area.Value, areaRes.Sum(resVal => resVal.Value));
+            Assert.AreEqual(15, areaRes[BlockType.CLB]);
+            Assert.AreEqual(5, areaRes[BlockType.BRAM]);
+            Assert.AreEqual(0, areaRes[BlockType.DSP]);
+            Assert.AreEqual(0, areaRes[BlockType.Forbidden]);
+            Assert.AreEqual(5, areaRes[BlockType.Null]);
+
+            area.MoveTo(new Point(3, 2));
+
+            areaRes = fpga.ResourcesFor(area);
+
+            Assert.AreEqual(area.Value, areaRes.Sum(resVal => resVal.Value));
+            Assert.AreEqual(15, areaRes[BlockType.CLB]);
+            Assert.AreEqual(5, areaRes[BlockType.BRAM]);
+            Assert.AreEqual(5, areaRes[BlockType.DSP]);
+            Assert.AreEqual(0, areaRes[BlockType.Forbidden]);
+            Assert.AreEqual(0, areaRes[BlockType.Null]);
         }
 
         [TestMethod]

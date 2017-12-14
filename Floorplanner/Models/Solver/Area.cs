@@ -1,5 +1,4 @@
 ﻿using Floorplanner.Models.Components;
-using Floorplanner.ProblemParser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,19 +69,7 @@ namespace Floorplanner.Models.Solver
         /// <summary>
         /// Resources covered by this area on the fpga.
         /// </summary>
-        public IReadOnlyDictionary<BlockType, int> Resources
-        {
-            get
-            {
-                var res = DesignParser.EmptyResources();
-
-                for(int y = (int)TopLeft.Y; y <= TopLeft.Y + Height; y++)
-                    for (int x = (int)TopLeft.X; x <= TopLeft.X + Width; x++)
-                        res[FPGA.Design[y, x]]++;
-
-                return res;
-            }
-        }
+        public IDictionary<BlockType, int> Resources { get => FPGA.ResourcesFor(this); }
 
         /// <summary>
         /// Area/Region resource ratio for this area and associated region.
@@ -100,10 +87,7 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         public bool IsSufficient
         {
-            get
-            {
-                return Region.Resources.Select(pair => Resources[pair.Key] >= pair.Value).Aggregate((a, b) => a && b);
-            }
+            get => !Resources.Any(kv => kv.Value < Region.Resources[kv.Key]);
         }
 
         /// <summary>
@@ -157,10 +141,18 @@ namespace Floorplanner.Models.Solver
             TopLeft = new Point(topLeft);
         }
 
-        public int Score(Costs costs)
+        public Area(Area copy)
         {
-            return Resources.Select(pair => pair.Value * costs.ResourceWeight[pair.Key]).Aggregate((c1, c2) => c1 + c2);
+            FPGA = copy.FPGA;
+            Region = copy.Region;
+            TopLeft = new Point(copy.TopLeft);
+            Width = copy.Width;
+            Height = copy.Height;
+            IsConfirmed = copy.IsConfirmed;
         }
+
+        public int GetCost(Costs costs) => 
+            Resources.Sum(pair => pair.Value * costs.ResourceWeight[pair.Key]);
 
         /// <summary>
         /// Move the area to the given point.

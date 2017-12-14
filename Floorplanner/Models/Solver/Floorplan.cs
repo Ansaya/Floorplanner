@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Floorplanner.Models.Solver
 {
@@ -14,16 +15,17 @@ namespace Floorplanner.Models.Solver
 
         /// <summary>
         /// Return all FPGA points not covered by confirmed areas
+        /// or not forbidden by the FPGA design
         /// </summary>
         public IEnumerable<Point> FreePoints
         {
             get
             {
-                IList<Point> fpgaPoints = new List<Point>(Design.FPGA.Points);
+                IList<Point> fpgaPoints = new List<Point>(Design.FPGA.ValidPoints);
                 IEnumerable<Area> confirmedAreas = Areas.Where(a => a.IsConfirmed);
 
                 if (confirmedAreas.Any())
-                    foreach (var p in confirmedAreas.Select(a => a.Points).Aggregate(Enumerable.Concat))
+                    foreach (var p in confirmedAreas.SelectMany(a => a.Points))
                         fpgaPoints.Remove(p);
 
                 return fpgaPoints;
@@ -36,17 +38,21 @@ namespace Floorplanner.Models.Solver
             Areas = Design.Regions.Select(r => new Area(Design.FPGA, r)).ToList();
         }
 
+        public Floorplan(Floorplan toCopy)
+        {
+            Design = toCopy.Design;
+            Areas = toCopy.Areas.Select(old => new Area(old)).ToList();
+        }
+
         public int GetScore()
         {
             Func<double, double, double> sum = (a, b) => a + b;
 
-            int totalArea = Areas.Select(a => a.Score(Design.Costs)).Aggregate((a, b) => a + b);
+            int totalArea = Areas.Sum(a => a.GetCost(Design.Costs));
 
             double totalWireDistance = Areas
-                .Select(a => a.Region.IOConns.Any() ? a.Region.IOConns
-                    .Select(io => io.Point.ManhattanFrom(a.Center) * io.Wires)
-                    .Aggregate(sum) : 0)
-                .Aggregate(sum);
+                .Sum(a => a.Region.IOConns
+                    .Sum(io => io.Point.ManhattanFrom(a.Center) * io.Wires));
             
             foreach(Area a in Areas)
             {
@@ -74,6 +80,40 @@ namespace Floorplanner.Models.Solver
 
             foreach (Area a in Areas)
                 tw.WriteLine($"{(int)a.TopLeft.X + 1} {(int)a.TopLeft.Y + 1} {a.Width + 1} {a.Height + 1}");                
+        }
+
+        public void PrintDesignToConsole()
+        {
+            FPGA fpga = Design.FPGA;
+            RegionType[,] currentDesign = new RegionType[fpga.Design.GetLength(0), fpga.Design.GetLength(1)];
+
+            foreach (Area a in Areas.Where(a => a.IsConfirmed))
+                foreach (Point p in a.Points)
+                    currentDesign[(int)p.Y, (int)p.X] = a.Type;
+
+            IDictionary<RegionType, ConsoleColor> color = new Dictionary<RegionType, ConsoleColor>()
+            {
+                { RegionType.Static, ConsoleColor.Green },
+                { RegionType.Reconfigurable, ConsoleColor.Magenta },
+                { RegionType.None, ConsoleColor.Gray }
+            };
+            
+            for (int y = 0; y < currentDesign.GetLength(0); y++) {
+
+                for (int x = 0; x < currentDesign.GetLength(1); x++)
+                {
+                    BlockType bt = fpga.Design[y, x];
+
+                    Console.ForegroundColor = bt == BlockType.Forbidden ? ConsoleColor.DarkRed
+                        : color[currentDesign[y, x]];
+
+                    Console.Write($" {(char)bt}");
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.ResetColor();
         }
 
         public int Compare(Area x, Area y) => Design.Compare(x.Region, y.Region);

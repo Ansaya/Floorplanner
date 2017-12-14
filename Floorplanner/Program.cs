@@ -19,19 +19,51 @@ namespace Floorplanner
 
         private static string _outputFile = null;
 
+        private static SolverTuning _opt = new SolverTuning()
+        {
+            CaosFactor = -57
+        };
+
         private static OptParser _optParser = new OptParser(
                 "Floorplanner",
                 "floorplanner.exe [arguments] ...\n\n" +
                 "A floorplan will be computed for the given input and written to the console.\n" +
                 "If an output path is specified, the floorplan will be written there.",
                 new ArgOption("i|input", "Input file path", path => _inputFile = path, true),
-                new ArgOption("a|indir", "Input files directory", path => _inputDir = path, true),
-                new ArgOption("t|outdir", "Output files directory", path => _outputDir = path, true),
-                new ArgOption("o", "Output file path", path => _outputFile = path, true));
+                new ArgOption("|indir", "Input files directory", path => _inputDir = path, true),
+                new ArgOption("|outdir", "Output files directory", path => _outputDir = path, true),
+                new ArgOption("o|output", "Output file path", path => _outputFile = path, true),
+                new ArgOption("|iterations", "Iterations before failing", it => {
+                    int iterations;
+                    if (int.TryParse(it, out iterations))
+                        _opt.MaxOptIteration = iterations;
+                }, true),
+                new ArgOption("|disruptions", "Disruptions before failing an iteration", ds => {
+                    int disruptuions;
+                    if (int.TryParse(ds, out disruptuions))
+                        _opt.MaxDisruption = disruptuions;
+                }, true),
+                new ArgOption("|dresthres", "Exceeding resource needed by two areas to be removed to place a new one" +
+                    "during disruption process.", drt => {
+                    int dresthres;
+                    if (int.TryParse(drt, out dresthres))
+                        _opt.ResourceDisruptThreshold = dresthres;
+                }, true),
+                new ArgOption("|caosfactor", "How many areas to disrupt in one time", ds => {
+                    int disruptuions;
+                    if (int.TryParse(ds, out disruptuions))
+                        _opt.CaosFactor = disruptuions;
+                }, true));
 
         static void Main(string[] args)
         {
             if(!_optParser.Parse(args))
+            {
+                _optParser.PrintUsage();
+                return;
+            }
+
+            if(_inputFile == null && _inputDir == null)
             {
                 _optParser.PrintUsage();
                 return;
@@ -47,7 +79,9 @@ namespace Floorplanner
                     return;
                 }
 
-                Solve(_inputFile, _outputFile);
+                string result = Solve(_inputFile, _outputFile);
+
+                Console.WriteLine(result);
             }
 
             if(_inputDir != null)
@@ -74,6 +108,7 @@ namespace Floorplanner
                     string inputFile = Path.Combine(_inputDir, f);
 
                     string result = Solve(inputFile, outFile);
+                    Console.WriteLine(result);
 
                     solverResults.Add(result);
                 }
@@ -82,8 +117,7 @@ namespace Floorplanner
                 foreach (string solveOut in solverResults)
                     Console.WriteLine(solveOut);
             }
-
-            Console.WriteLine();
+            
             Console.WriteLine("Press a key to exit...");
             Console.ReadKey();
         }
@@ -95,9 +129,23 @@ namespace Floorplanner
 
             Design problem = Design.Parse(File.OpenText(inputFile));
 
-            Console.WriteLine("Design constraints loaded succesfully.\nNow computing solution...");
+            Console.WriteLine("Design constraints loaded succesfully.");
 
-            FloorplanOptimizer s = new FloorplanOptimizer(problem);
+            Console.WriteLine($"Requires to allocate {problem.Regions.Length} regions.\n" +
+                $"\t{problem.Regions.Count(r => r.IOConns.Any())} regions have I/O connections\n" +
+                $"\t{problem.Regions.Count(r => r.Type == RegionType.Static)} static\t" +
+                $"\t{problem.Regions.Count(r => r.Type == RegionType.Reconfigurable)} reconfigurable");
+                        
+            if(_opt.CaosFactor == -57)
+                _opt.CaosFactor = (int)Math.Ceiling(Math.Max(3, problem.Regions.Length * 0.2));
+
+            _opt.CaosVariance = (int)Math.Ceiling(_opt.CaosFactor * 0.25);
+
+            FloorplanOptimizer s = new FloorplanOptimizer(problem, _opt);
+            Console.WriteLine("Optimizator initialized with following parameters:");
+            _opt.PrintValuesTo(Console.Out);
+
+            Console.WriteLine("Now computing solution...");
 
             Floorplan optimiezdPlan;
 
@@ -109,7 +157,8 @@ namespace Floorplanner
             {
                 Console.WriteLine($"Error during optimization process...");
                 Console.WriteLine(e.Message);
-                return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: computation infeasible.";
+                return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: computation infeasible.\n" +
+                    $"\t{e.Message}\n";
             }
 
             Console.WriteLine("Solution was computed succesfully!");
@@ -128,6 +177,7 @@ namespace Floorplanner
                 outPipe = File.CreateText(outputFile);
 
             optimiezdPlan.PrintOn(outPipe);
+            optimiezdPlan.PrintDesignToConsole();
 
             if (outputFile != null)
             {
@@ -135,7 +185,9 @@ namespace Floorplanner
                 Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(outputFile)}'.");
             }
 
-            return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore}";
+            return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore}\n" +
+                $"\tMedium region height: {optimiezdPlan.Areas.Average(a => a.Height + 1)}\n" +
+                $"\tMedium region width: {optimiezdPlan.Areas.Average(a => a.Width + 1)}\n";
         }
     }
 }

@@ -48,7 +48,7 @@ namespace Floorplanner.ArgParser
                 string argName = args[i].Replace("-", String.Empty);
 
                 // Search for matching arg option
-                ArgOption match = _options.AsParallel()
+                ArgOption match = _options
                     .FirstOrDefault(opt => opt.Name == argName || opt.FullName == argName);
 
                 // If match is found try reading value and execute assignement

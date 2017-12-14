@@ -1,5 +1,4 @@
 ﻿using Floorplanner.Models.Solver;
-using Floorplanner.ProblemParser;
 using System.IO;
 
 namespace Floorplanner.Models
@@ -22,7 +21,7 @@ namespace Floorplanner.Models
 
         public static IOConn Parse(TextReader atConn)
         {
-            string[] colRowWire = atConn.ReadLine().Split(DesignParser._separator);
+            string[] colRowWire = atConn.ReadLine().Split(FPHelper._separator);
 
             return new IOConn()
             {
