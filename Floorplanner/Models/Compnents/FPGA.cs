@@ -40,6 +40,8 @@ namespace Floorplanner.Models.Components
         public double CLBratioBRAM { get; private set; }
 
         public double CLBratioDSP { get; private set; }
+
+        public IDictionary<BlockType, int> Resources { get => _resourcesFromOrigin[Xmax, Ymax]; }
         
         private IEnumerable<Point> _validPoints;
 
@@ -85,7 +87,7 @@ namespace Floorplanner.Models.Components
                     res[bt]++;
 
                     // Area valid points pre-enumeration
-                    if (bt != BlockType.Forbidden)
+                    if (bt != BlockType.Forbidden && bt != BlockType.Null)
                         validPoints.Add(new Point(c, r));
 
                     // Area resources pre-calculation
