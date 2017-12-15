@@ -56,8 +56,11 @@ namespace Floorplanner.ArgParser
                 {
                     string paramVal = args[i + 1];
 
-                    // If param value is missing set as empty and fix index for next param
-                    if (paramVal[0] == '-')
+                    int validInt;
+
+                    // If param value begins with '-' and isn't an integer, then it is a parameter identifier
+                    // therefore current parameter value is missing
+                    if (paramVal[0] == '-' && !int.TryParse(paramVal, out validInt))
                     {
                         if(args.Length - 1 > i + 1)
                             i--;
