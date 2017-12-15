@@ -55,6 +55,11 @@ namespace Floorplanner
                     int disruptuions;
                     if (int.TryParse(ds, out disruptuions))
                         _opt.CaosFactor = disruptuions;
+                }, true),
+                new ArgOption("|maxconcurrent", "How many concurrent optimizers can be instanciated.", mc => {
+                    int maxConcurrent = 0;
+                    if (int.TryParse(mc, out maxConcurrent) && maxConcurrent > 0)
+                        _opt.MaxConcurrent = maxConcurrent;
                 }, true));
 
         static void Main(string[] args)

@@ -30,12 +30,13 @@ namespace Floorplanner.Models.Solver
         public Floorplan(Floorplan toCopy)
         {
             Design = toCopy.Design;
-            Areas = toCopy.Areas.Select(old => new Area(old)).ToList();
+            Areas = new List<Area>(toCopy.Areas.Select(old => new Area(old)));
         }
 
         public int GetScore()
         {
-            Func<double, double, double> sum = (a, b) => a + b;
+            if (Areas.Any(a => !a.IsConfirmed))
+                throw new Exception("Cannot calculate floorplan score if some areas haven't been placed.");
 
             int totalArea = Areas.Sum(a => a.GetCost(Design.Costs));
 

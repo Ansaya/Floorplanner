@@ -16,7 +16,7 @@ namespace Floorplanner.Models.Solver
 
         public int ResourceDisruptThreshold { get; set; } = 2;
 
-        public int ConcurrentOptimizations { get; set; } = 4;
+        public int MaxConcurrent { get; set; } = 4;
 
         public void PrintValuesTo(TextWriter tw)
         {

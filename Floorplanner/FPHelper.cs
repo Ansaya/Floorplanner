@@ -29,7 +29,7 @@ namespace Floorplanner
             }
         }
 
-        public static void Disrupt(this Area a, ref IList<Area> unconfirmed)
+        public static void Disrupt(this Area a, IList<Area> unconfirmed)
         {
             a.IsConfirmed = false;
             unconfirmed.Add(a);

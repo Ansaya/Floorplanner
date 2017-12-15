@@ -1,4 +1,5 @@
-﻿using Floorplanner.Models.Solver;
+﻿using Floorplanner.Models;
+using Floorplanner.Models.Solver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace Floorplanner.Solver.Disruptors
                 throw new ArgumentNullException("Solver options must be provided.");
         }
 
-        public void DisruptStateFor(Area area, IList<Area> unconfirmed, Floorplan floorPlan)
+        public void DisruptStateFor(Region region, IList<Area> unconfirmed, Floorplan floorPlan)
         {
             IList<Area> confirmed = floorPlan.Areas.Where(a => a.IsConfirmed).ToList();
 
@@ -29,7 +30,7 @@ namespace Floorplanner.Solver.Disruptors
                 confirmed.Shuffle();
 
                 for (int i = 0; i < max; i++)
-                    confirmed[i].Disrupt(ref unconfirmed);
+                    confirmed[i].Disrupt(unconfirmed);
 
                 return;
             }
@@ -41,7 +42,7 @@ namespace Floorplanner.Solver.Disruptors
             {
                 Area current = confirmed[j];
 
-                if (current.Resources.Merge(area.Region.Resources, FPHelper.sub).Any(rv => rv.Value < 0))
+                if (current.Resources.Merge(region.Resources, FPHelper.sub).Any(rv => rv.Value < 0))
                     smaller.Add(current);
                 else
                     bigger.Add(current);
@@ -59,12 +60,12 @@ namespace Floorplanner.Solver.Disruptors
 
             int bigCaos = caosedAreas - smallCaos;
 
-            AggregateDisrupt(smallCaos, smaller, ref unconfirmed);
+            AggregateDisrupt(smallCaos, smaller, unconfirmed);
 
             SingleDisrupt(bigCaos, bigger, unconfirmed);
         }
 
-        private void AggregateDisrupt(int caosedAreas, IList<Area> disruptable, ref IList<Area> unconfirmed)
+        private void AggregateDisrupt(int caosedAreas, IList<Area> disruptable, IList<Area> unconfirmed)
         {
             for (int i = 0; i < disruptable.Count && caosedAreas > 0; i++)
             {
@@ -77,8 +78,8 @@ namespace Floorplanner.Solver.Disruptors
                     if (ai.IsAdjacent(aj) && ai.Resources.Merge(aj.Resources, FPHelper.add)
                         .All(rv => rv.Value >= _st.ResourceDisruptThreshold))
                     {
-                        ai.Disrupt(ref unconfirmed);
-                        aj.Disrupt(ref unconfirmed);
+                        ai.Disrupt(unconfirmed);
+                        aj.Disrupt(unconfirmed);
                         caosedAreas -= 2;
                     }
                 }
@@ -92,7 +93,7 @@ namespace Floorplanner.Solver.Disruptors
         {
             for (int i = 0; i < disruptable.Count && caosedAreas > 0; i++)
             {
-                disruptable[i].Disrupt(ref unconfirmed);
+                disruptable[i].Disrupt(unconfirmed);
                 caosedAreas--;
             }
         }

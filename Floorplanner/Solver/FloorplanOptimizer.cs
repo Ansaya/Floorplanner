@@ -45,7 +45,7 @@ namespace Floorplanner.Solver
 
             _st.MaxDisruption = (int)(_st.MaxDisruption * _st.DisruptPerIteration);
 
-            int concOpt = Math.Min(Design.Regions.Length, _st.ConcurrentOptimizations);
+            int concOpt = Math.Min(Design.Regions.Length, _st.MaxConcurrent);
 
             for (int i = 1; i <= _st.MaxOptIteration; i++)
             {
@@ -68,7 +68,7 @@ namespace Floorplanner.Solver
                 {
                     Floorplan disFP = new Floorplan(firstValidPlan);
 
-                    areaDisruptor.DisruptStateFor(areas[j], new List<Area>(), disFP);
+                    areaDisruptor.DisruptStateFor(areas[j].Region, new List<Area>(), disFP);
 
                     fpOptimizers[j] = Task.Factory.StartNew(optTools =>
                     {
@@ -154,7 +154,6 @@ namespace Floorplanner.Solver
                 Console.WriteLine("Starting region placement...");
 
             IList<Area> unconfirmed = new List<Area>(firstPlan.Areas.Where(a => !a.IsConfirmed));
-            IList<Area> unplaceable = new List<Area>();
 
             // Place and disrupt areas until they are all placed in some position
             while (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
@@ -166,7 +165,7 @@ namespace Floorplanner.Solver
 
                     if (canPrint)
                         Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
-                        $"({unconfirmed.Count + unplaceable.Count} remaining regions)    " +
+                        $"({unconfirmed.Count} remaining regions)    " +
                         $"({_st.MaxDisruption - failDisrupt} solution disruptions)";
 
                     if (canPrint)
@@ -190,39 +189,39 @@ namespace Floorplanner.Solver
                         // remaining areas
                         if (canPrint)
                             Console.WriteLine($"Can't place area {area.ID} with current state.");
-                        unplaceable.Add(area);
+
+                        continue;
                     }
 
                     // Remove current area from unconfirmed list despite placement result
                     unconfirmed.Remove(area);
                 }
 
-                // If some areas remaind unplaced put them back in unconfirmed list,
+                // If some areas remaind unplaced,
                 // disrupt current state and try to place them again
-                if (unplaceable.Count() > 0 && !ct.IsCancellationRequested)
+                if (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
                 {
-                    if (minLeftRegions > unplaceable.Count)
+                    if (minLeftRegions > unconfirmed.Count)
                     {
-                        minLeftRegions = unplaceable.Count;
+                        minLeftRegions = unconfirmed.Count;
                         currentBest = new Floorplan(firstPlan);
                     }
 
+                    // When maximum nber of disruption has been reached stop computation
                     if (failDisrupt == 0)
                     {
                         // If on main instance print error information
                         if (canPrint)
                             FinalizeOnUnfeasible(currentBest, minLeftRegions);
-                        else
-                            break;
-                    }
 
-                    foreach (Area a in unplaceable) unconfirmed.Add(a);
-                    unplaceable.Clear();
+                        throw new OptimizationException($"{minLeftRegions} out of {currentBest.Areas.Count} " + 
+                            $"regions couldn't be placed after {_st.MaxDisruption} disruption.\n");
+                    }
 
                     int currentUnconf = unconfirmed.Count;
                     failDisrupt--;
 
-                    areaDisruptor.DisruptStateFor(unconfirmed.First(), unconfirmed, firstPlan);
+                    areaDisruptor.DisruptStateFor(unconfirmed.First().Region, unconfirmed, firstPlan);
 
                     if (canPrint)
                         Console.WriteLine($"\tDisrupted {unconfirmed.Count - currentUnconf} " +
@@ -244,9 +243,6 @@ namespace Floorplanner.Solver
             Console.WriteLine();
             bestPlan.PrintDesignToConsole();
             Console.WriteLine();
-
-            throw new OptimizationException($"{leftRegions} out of {bestPlan.Areas.Count} " +
-                $"regions couldn't be placed after {_st.MaxDisruption} disruption.\n");
         }
 
         private void PrintRegionTo(TextWriter tw, Region r)
