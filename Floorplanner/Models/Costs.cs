@@ -29,6 +29,8 @@ namespace Floorplanner.Models
             };
         }
 
+        private Costs() { }
+
         public static Costs Parse(TextReader atCosts)
         {
             string[] scoreAreaWirelength = atCosts.ReadLine().Split(FPHelper._separator);
