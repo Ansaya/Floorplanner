@@ -17,7 +17,7 @@ namespace Floorplanner.Solver.Disruptors
                 throw new ArgumentNullException("Solver options must be provided.");
         }
 
-        public void DisruptStateFor(Area area, ref IList<Area> unconfirmed, Floorplan floorPlan)
+        public void DisruptStateFor(Area area, IList<Area> unconfirmed, Floorplan floorPlan)
         {
             IList<Area> confirmed = floorPlan.Areas.Where(a => a.IsConfirmed).ToList();
 
@@ -61,7 +61,7 @@ namespace Floorplanner.Solver.Disruptors
 
             AggregateDisrupt(smallCaos, smaller, ref unconfirmed);
 
-            SingleDisrupt(bigCaos, bigger, ref unconfirmed);
+            SingleDisrupt(bigCaos, bigger, unconfirmed);
         }
 
         private void AggregateDisrupt(int caosedAreas, IList<Area> disruptable, ref IList<Area> unconfirmed)
@@ -85,10 +85,10 @@ namespace Floorplanner.Solver.Disruptors
             }
 
             if(caosedAreas > 0)
-                SingleDisrupt(caosedAreas, disruptable, ref unconfirmed);
+                SingleDisrupt(caosedAreas, disruptable, unconfirmed);
         }
         
-        private void SingleDisrupt(int caosedAreas, IList<Area> disruptable, ref IList<Area> unconfirmed)
+        private void SingleDisrupt(int caosedAreas, IList<Area> disruptable, IList<Area> unconfirmed)
         {
             for (int i = 0; i < disruptable.Count && caosedAreas > 0; i++)
             {

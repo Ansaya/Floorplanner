@@ -5,6 +5,6 @@ namespace Floorplanner.Solver.Disruptors
 {
     public interface IAreaDisruptor
     {
-        void DisruptStateFor(Area area, ref IList<Area> notConfirmed, Floorplan floorPlan);
+        void DisruptStateFor(Area area, IList<Area> notConfirmed, Floorplan floorPlan);
     }
 }

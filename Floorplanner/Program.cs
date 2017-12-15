@@ -33,12 +33,14 @@ namespace Floorplanner
                 new ArgOption("|indir", "Input files directory", path => _inputDir = path, true),
                 new ArgOption("|outdir", "Output files directory", path => _outputDir = path, true),
                 new ArgOption("o|output", "Output file path", path => _outputFile = path, true),
-                new ArgOption("|iterations", "Iterations before failing", it => {
+                new ArgOption("|iterations", "Optimization iterations after a generic solution has been found.", it => {
                     int iterations;
                     if (int.TryParse(it, out iterations))
                         _opt.MaxOptIteration = iterations;
                 }, true),
-                new ArgOption("|disruptions", "Disruptions before failing an iteration", ds => {
+                new ArgOption("|disruptions", "Disruptions before failing generic plan search." +
+                    "After generic plan has been found each optimization iteration will admit half disruptions " +
+                    "before failing.", ds => {
                     int disruptuions;
                     if (int.TryParse(ds, out disruptuions))
                         _opt.MaxDisruption = disruptuions;

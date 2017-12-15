@@ -8,11 +8,15 @@ namespace Floorplanner.Models.Solver
 
         public int CaosVariance { get; set; } = 2;
 
-        public int MaxOptIteration { get; set; } = 0;
+        public int MaxOptIteration { get; set; } = 5;
+
+        public double DisruptPerIteration { get; set; } = 0.5;
 
         public int MaxDisruption { get; set; } = 30;
 
         public int ResourceDisruptThreshold { get; set; } = 2;
+
+        public int ConcurrentOptimizations { get; set; } = 4;
 
         public void PrintValuesTo(TextWriter tw)
         {
