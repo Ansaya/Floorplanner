@@ -44,7 +44,7 @@ namespace Floorplanner
                         _opt.MaxDisruption = disruptuions;
                 }, true),
                 new ArgOption("|dresthres", "Exceeding resource needed by two areas to be removed to place a new one" +
-                    "during disruption process.", drt => {
+                    "during disruption process. (Can be a negative value)", drt => {
                     int dresthres;
                     if (int.TryParse(drt, out dresthres))
                         _opt.ResourceDisruptThreshold = dresthres;
@@ -134,7 +134,8 @@ namespace Floorplanner
             Console.WriteLine($"Requires to allocate {problem.Regions.Length} regions.\n" +
                 $"\t{problem.Regions.Count(r => r.IOConns.Any())} regions have I/O connections\n" +
                 $"\t{problem.Regions.Count(r => r.Type == RegionType.Static)} static\t" +
-                $"\t{problem.Regions.Count(r => r.Type == RegionType.Reconfigurable)} reconfigurable");
+                $"\t{problem.Regions.Count(r => r.Type == RegionType.Reconfigurable)} reconfigurable\n" +
+                $"\tAll regions requires {problem.RequeiredResources:P2} of total resources.\n");
                         
             if(_opt.CaosFactor == -57)
                 _opt.CaosFactor = (int)Math.Ceiling(Math.Max(3, problem.Regions.Length * 0.2));
@@ -145,7 +146,7 @@ namespace Floorplanner
             Console.WriteLine("Optimizator initialized with following parameters:");
             _opt.PrintValuesTo(Console.Out);
 
-            Console.WriteLine("Now computing solution...");
+            Console.WriteLine("\nNow computing solution...");
 
             Floorplan optimiezdPlan;
 
@@ -156,19 +157,19 @@ namespace Floorplanner
             catch (OptimizationException e)
             {
                 Console.WriteLine($"Error during optimization process...");
-                Console.WriteLine(e.Message);
+                Console.WriteLine("\t" + e.Message);
                 return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: computation infeasible.\n" +
                     $"\t{e.Message}\n";
             }
 
-            Console.WriteLine("Solution was computed succesfully!");
+            Console.WriteLine("Solution was computed succesfully!\n");
 
             int planScore = optimiezdPlan.GetScore();
 
-            Console.WriteLine($"Optimized plan has scored {planScore} points.");
+            Console.WriteLine($"Optimized plan has scored {planScore:N0}/{problem.Costs.MaxScore:N0} points.\n");
             if(planScore <= 0)
             {
-                Console.WriteLine("Score is negative. Not writing solution.");
+                Console.WriteLine("Score is negative. Not writing solution.\n");
                 return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: negative score.";
             }
 
@@ -178,11 +179,12 @@ namespace Floorplanner
 
             optimiezdPlan.PrintOn(outPipe);
             optimiezdPlan.PrintDesignToConsole();
+            Console.WriteLine();
 
             if (outputFile != null)
             {
                 outPipe.Close();
-                Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(outputFile)}'.");
+                Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(outputFile)}'.\n");
             }
 
             return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore}\n" +

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Floorplanner.Models.Solver
 {
@@ -19,17 +18,7 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         public IEnumerable<Point> FreePoints
         {
-            get
-            {
-                IList<Point> fpgaPoints = new List<Point>(Design.FPGA.ValidPoints);
-                IEnumerable<Area> confirmedAreas = Areas.Where(a => a.IsConfirmed);
-
-                if (confirmedAreas.Any())
-                    foreach (var p in confirmedAreas.SelectMany(a => a.Points))
-                        fpgaPoints.Remove(p);
-
-                return fpgaPoints;
-            }
+            get => Design.FPGA.ValidPoints.Except(Areas.Where(a => a.IsConfirmed).SelectMany(a => a.Points));
         }
 
         public Floorplan(Design planFor)
@@ -67,7 +56,7 @@ namespace Floorplanner.Models.Solver
                 }
             }
 
-            return Design.Costs.MaxScore - totalArea * Design.Costs.Area - (int)totalWireDistance * Design.Costs.WireLength;
+            return Design.Costs.MaxScore - totalArea * Design.Costs.AreaWeight - (int)totalWireDistance * Design.Costs.WireWeight;
         }
 
         /// <summary>

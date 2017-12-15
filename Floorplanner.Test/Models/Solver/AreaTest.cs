@@ -162,7 +162,7 @@ namespace Floorplanner.Test.Models.Solver
             Assert.IsTrue(area1.TryMoveTo(newPoint));
 
             checkCorners(area1, 18, 0, 23, 9);
-            Assert.AreNotSame(newPoint, area1.TopLeft);
+            Assert.IsFalse(ReferenceEquals(newPoint, area1.TopLeft));
 
             Assert.IsTrue(area1.TryMoveTo(oldPoint));
 

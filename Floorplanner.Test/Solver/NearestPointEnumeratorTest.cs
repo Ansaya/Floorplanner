@@ -1,5 +1,5 @@
 ﻿using Floorplanner.Models.Solver;
-using Floorplanner.Solver;
+using Floorplanner.Solver.Placers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 
@@ -69,7 +69,7 @@ namespace Floorplanner.Test.Solver
 
             Assert.AreEqual(two, dpe.Current);
 
-            dpe.Skip(new Point[] { two, three, four });
+            dpe.Skip(new Point[] { new Point(2,0), new Point(3,0), new Point(4,0) });
 
             Assert.AreEqual(two, dpe.Current);
 

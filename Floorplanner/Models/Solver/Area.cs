@@ -282,6 +282,12 @@ namespace Floorplanner.Models.Solver
             return xOverlapping;
         }
         
+
+        public bool Contains(Point p)
+        {
+            return TopLeft.X <= p.X && p.X <= TopLeft.X + Width
+                && TopLeft.Y <= p.Y && p.Y <= TopLeft.Y + Height;
+        }
     }
 
     public enum Direction

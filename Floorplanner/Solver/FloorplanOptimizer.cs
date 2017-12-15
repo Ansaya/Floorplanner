@@ -6,6 +6,8 @@ using Floorplanner.Solver.Placers;
 using Floorplanner.Solver.Reducers;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace Floorplanner.Solver
 {
@@ -13,11 +15,11 @@ namespace Floorplanner.Solver
     {
         public Design Design { get; private set; }
 
-        private readonly IAreaReducer _areaReducer;
+        private IAreaReducer _areaReducer;
 
-        private readonly IAreaDisruptor _areaDisruptor;
+        private IAreaDisruptor _areaDisruptor;
 
-        private readonly IAreaPlacer _areaPlacer;
+        private IAreaPlacer _areaPlacer;
 
         private readonly SolverTuning _st;
 
@@ -25,82 +27,114 @@ namespace Floorplanner.Solver
         {
             Design = toPlan;
             _st = st ?? new SolverTuning();
-
-            _areaReducer = new RatioAreaReducer(1.7, 1.7, 2, 2);
-            _areaDisruptor = new CommonResourcesDisruptor(_st);
-            _areaPlacer = new NearestCenterPlacer(_areaReducer);
         }
 
         public Floorplan Solve()
         {
-            Floorplan currentBest = new Floorplan(Design);
+            Floorplan firstPlan = new Floorplan(Design);
             int failDisrupt = _st.MaxDisruption;
             int caosFactor = _st.CaosFactor;
 
-            int minLeftRegions = currentBest.Areas.Count;
+            int minLeftRegions = firstPlan.Areas.Count;
+            Floorplan currentBest = firstPlan;
+
+            _areaReducer = new RatioAreaReducer(1.3, 1.3, 2, 2);
+            _areaPlacer = new MinCostPlacer(_areaReducer);
+            _areaDisruptor = new CommonResourcesDisruptor(_st);
+
             Console.WriteLine("Starting regions area optimization...");
 
-            IList<Area> notConfirmed = new List<Area>(currentBest.Areas);
+            IList<Area> unconfirmed = new List<Area>(firstPlan.Areas);
+            IList<Area> unplaceable = new List<Area>();
 
-            // Try place and expand each area nearest possible to computed center points
-            while(notConfirmed.Count > 0)
+            // Place and disrupt areas until they are all placed in some position
+            while(unconfirmed.Count > 0)
             {
-                for(int i = 0; i < notConfirmed.Count; i++)
+                // Try position each unconfirmed area
+                for(int i = 0; i < unconfirmed.Count; i++)
                 {
-                    Area area = notConfirmed[i];
+                    Area area = unconfirmed[i];
 
                     Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
-                        $"({notConfirmed.Count} remaining regions)    " +
+                        $"({unconfirmed.Count} remaining regions)    " +
                         $"({_st.MaxDisruption - failDisrupt} solution disruptions)";
 
-                    Console.WriteLine($"Optimizing region {area.ID}\n" +
-                        $"\tCLB: {area.Region.Resources[BlockType.CLB]}    " +
-                        $"BRAM: {area.Region.Resources[BlockType.BRAM]}    " +
-                        $"DSP: {area.Region.Resources[BlockType.DSP]}    " +
-                        $"({area.Type.ToString()})");
+                    PrintRegionTo(Console.Out, area.Region);
 
-                    Point previousCenter = i > 0 ? notConfirmed[i - 1].Center
+                    Point previousCenter = i > 0 ? unconfirmed[i - 1].Center
                         : area.Center;
 
                     try
                     {
-                        _areaPlacer.PlaceArea(area, currentBest, previousCenter);
+                        _areaPlacer.PlaceArea(area, firstPlan, previousCenter);
+                        area.IsConfirmed = true;
 
                         Console.WriteLine($"\tPlaced at ({area.TopLeft.X}, {area.TopLeft.Y})   " +
                             $"Width: {area.Height}   Height: {area.Width}");
                     }
                     catch (OptimizationException)
                     {
-                        if (minLeftRegions > notConfirmed.Count)
-                            minLeftRegions = notConfirmed.Count;
-
-                        if (failDisrupt == 0)
-                        {
-                            Console.WriteLine("Last computed plan:\n");
-                            currentBest.PrintDesignToConsole();
-
-                            throw new OptimizationException($"{minLeftRegions} out of {currentBest.Areas.Count} " +
-                                $"regions couldn't be placed after {_st.MaxDisruption} disruption.\n");
-                        }                            
-
+                        // If current area couldn't be placed, store it away and go ahead with
+                        // remaining areas
                         Console.WriteLine($"Can't place area {area.ID} with current state.");
-
-                        failDisrupt--;
-                        _areaDisruptor.DisruptStateFor(area, ref notConfirmed, currentBest);
-                        continue;
+                        unplaceable.Add(area);
                     }
 
-                    notConfirmed.Remove(area);                    
+                    // Remove current area from unconfirmed list despite placement result
+                    unconfirmed.Remove(area);                    
+                }
+
+                // If some areas remaind unplaced put them back in unconfirmed list,
+                // disrupt current state and try to place them again
+                if(unplaceable.Count() > 0)
+                {
+                    if (minLeftRegions > unconfirmed.Count)
+                    {
+                        minLeftRegions = unconfirmed.Count;
+                        currentBest = new Floorplan(firstPlan);
+                    }
+
+                    if (failDisrupt == 0)
+                        FinalizeOnUnfeasible(currentBest, minLeftRegions);
+
+                    foreach (Area a in unplaceable) unconfirmed.Add(a);
+
+                    failDisrupt--;
+                    _areaDisruptor.DisruptStateFor(unplaceable.First(), ref unconfirmed, firstPlan);
                 }
             }
 
-            int currentBestScore = currentBest.GetScore();
+            int currentBestScore = firstPlan.GetScore();
 
             // TODO: add disruption only cycles on feasible solution from previous cycles
 
             Console.WriteLine("Region areas optimization completed successfully.");
 
-            return currentBest;
+            return firstPlan;
+        }
+
+        private void FinalizeOnUnfeasible(Floorplan lastPlan, int leftRegions)
+        {
+            Console.WriteLine("\nMissing regions are:");
+            foreach (Area a in lastPlan.Areas.Where(a => !a.IsConfirmed))
+            {
+                Console.Write("\t");
+                PrintRegionTo(Console.Out, a.Region);
+            }
+            Console.WriteLine();
+            lastPlan.PrintDesignToConsole();
+            Console.WriteLine();
+
+            throw new OptimizationException($"{leftRegions} out of {lastPlan.Areas.Count} " +
+                $"regions couldn't be placed after {_st.MaxDisruption} disruption.\n");
+        }
+
+        private void PrintRegionTo(TextWriter tw, Region r)
+        {
+            tw.WriteLine($"Region {r.ID} - {r.Resources[BlockType.CLB]} CLB" +
+                                    $"  {r.Resources[BlockType.BRAM]} BRAM" +
+                                    $"  {r.Resources[BlockType.DSP]} DSP" +
+                                    $"  ({r.Type.ToString()})");
         }
     }
 }

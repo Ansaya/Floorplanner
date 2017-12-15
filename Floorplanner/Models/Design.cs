@@ -1,6 +1,7 @@
 ﻿using Floorplanner.Models.Components;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Floorplanner.Models
 {
@@ -15,6 +16,13 @@ namespace Floorplanner.Models
         public Region[] Regions { get; private set; }
 
         public int[,] RegionWires { get; private set; }
+
+        private double _regResPercentage;
+
+        /// <summary>
+        /// Return resources percentage on total FPGA available resources
+        /// </summary>
+        public double RequeiredResources { get => _regResPercentage; }
 
         public static Design Parse(TextReader designFileContent)
         {
@@ -41,6 +49,12 @@ namespace Floorplanner.Models
                 for (int j = 0; j < regions; j++)
                     design.RegionWires[i, j] = int.Parse(currentRow[j]);
             }
+
+            double regResReq = design.Regions.SelectMany(r => r.Resources).Sum(kv => kv.Value);
+            double fpgaRes = design.FPGA.Resources[BlockType.CLB] + design.FPGA.Resources[BlockType.BRAM]
+                + design.FPGA.Resources[BlockType.DSP];
+
+            design._regResPercentage = regResReq / fpgaRes;
 
             return design;
         }
@@ -84,7 +98,7 @@ namespace Floorplanner.Models
 
             double recMult = x.Type == RegionType.Reconfigurable ? 1.2 : 1;
 
-            return recMult * resourcesScore * Costs.Area;// + interConnScore * Costs.WireLength * 0.5;
+            return recMult * resourcesScore * Costs.AreaWeight;// + interConnScore * Costs.WireLength * 0.5;
         }
     }
 }

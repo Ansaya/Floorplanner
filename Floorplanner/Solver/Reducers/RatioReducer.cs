@@ -33,7 +33,7 @@ namespace Floorplanner.Solver.Reducers
         /// <param name="idealCenter">Ideal center point for given area.</param>
         /// <param name="floorPlan">Floorplan whom given area belongs to.</param>
         /// <returns>Reduced area cost.</returns>
-        public void Reduce(ref Area area, Point idealCenter, Floorplan floorPlan)
+        public void Reduce(Area area, Point idealCenter, Floorplan floorPlan)
         {
             // If the area requires mostly homogeneous resources
             // try reducing with two different approaches and
@@ -84,7 +84,7 @@ namespace Floorplanner.Solver.Reducers
                 int oldWidth = area.Width;
 
                 // Chose a shrinking axis looking at area/region BRAM's and DSP's ratios
-                // and check if chose axis hasn't been completely explored yet
+                // and check if chosen axis hasn't been completely explored yet
                 bool widthHeightShrink = shrinkArbiter.Invoke(area, idealCenter);
 
                 widthHeightShrink = widthHeightShrink
@@ -138,12 +138,28 @@ namespace Floorplanner.Solver.Reducers
             return GetCost(area, floorPlan.Design.Costs);
         }
 
+        /// <summary>
+        /// Define on which axis to reduce the area
+        /// True: reduce on Y axis
+        /// False: reduce on X axis
+        /// </summary>
+        /// <param name="area"></param>
+        /// <param name="idealCenter"></param>
+        /// <returns>True if area should de reduced in height, false if in width.</returns>
         private bool HeterogeneousShrinkArbiter(Area area, Point idealCenter)
         {
-            return (area.ResourceRatio[BlockType.BRAM] <= _arDSPRatio
-                    || area.ResourceRatio[BlockType.DSP] <= _arBRAMratio);
+            return (area.ResourceRatio[BlockType.DSP] <= _arDSPRatio
+                    || area.ResourceRatio[BlockType.BRAM] <= _arBRAMratio);
         }
 
+        /// <summary>
+        /// Define on which axis to reduce the area
+        /// True: reduce on Y axis
+        /// False: reduce on X axis
+        /// </summary>
+        /// <param name="area"></param>
+        /// <param name="idealCenter"></param>
+        /// <returns>True if area should de reduced in height, false if in width.</returns>
         private bool HomogeneousShrinkArbiter(Area area, Point idealCenter)
         {
             double xDistance = idealCenter.X - area.Center.X;
@@ -159,6 +175,7 @@ namespace Floorplanner.Solver.Reducers
         /// <param name="a">Area to score.</param>
         /// <param name="c">Costs values container.</param>
         /// <returns>Area total score.</returns>
-        public int GetCost(Area a, Costs c) => a.GetCost(c);
+        public int GetCost(Area a, Costs c) => c.AreaWeight != 0 ? a.GetCost(c)
+                : a.GetCost(new Costs(c.MaxScore, c.WireWeight, c.WireWeight, 1, 1, 1));
     }
 }

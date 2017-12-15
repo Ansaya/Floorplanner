@@ -2,11 +2,7 @@
 
 namespace Floorplanner.Models.Solver
 {
-#pragma warning disable CS0660 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.Equals(object o)
-#pragma warning disable CS0661 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.GetHashCode()
     public class Point
-#pragma warning restore CS0661 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.GetHashCode()
-#pragma warning restore CS0660 // Il tipo definisce l'operatore == o l'operatore != ma non esegue l'override di Object.Equals(object o)
     {
         public double X { get; set; }
 
@@ -65,14 +61,19 @@ namespace Floorplanner.Models.Solver
             }
         }
 
-        public static bool operator ==(Point point1, Point point2)
+        public override bool Equals(Object obj)
         {
-            return point1.X == point2.X && point2.Y == point1.Y;
+            // Check for null values and compare run-time types.
+            if (obj == null || GetType() != obj.GetType())
+                return false;
+
+            Point p = (Point)obj;
+            return (X == p.X) && (Y == p.Y);
         }
 
-        public static bool operator !=(Point point1, Point point2)
+        public override int GetHashCode()
         {
-            return !(point1 == point2);
+            return (int)X ^ (int)Y;
         }
     }
 }

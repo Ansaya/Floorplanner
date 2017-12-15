@@ -70,11 +70,11 @@ namespace Floorplanner.Solver.Disruptors
 
         private void AggregateDisrupt(int caosedAreas, IList<Area> disruptable, ref IList<Area> unconfirmed)
         {
-            for (int i = 0; i < disruptable.Count || caosedAreas <= 0; i++)
+            for (int i = 0; i < disruptable.Count && caosedAreas > 0; i++)
             {
                 Area ai = disruptable[i];
 
-                for (int j = i + 1; j < disruptable.Count || caosedAreas <= 0; j++)
+                for (int j = i + 1; j < disruptable.Count && caosedAreas > 0; j++)
                 {
                     Area aj = disruptable[j];
 

@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Floorplanner.Solver
+namespace Floorplanner.Solver.Placers
 {
     public class NearestPointEnumerator : IEnumerator<Point>
     {
@@ -25,11 +25,17 @@ namespace Floorplanner.Solver
         /// <summary>
         /// Skip specified points from current eumeration.
         /// </summary>
-        /// <param name="uselessPoints">Point to remove from the enumeration.</param>
-        public void Skip(IEnumerable<Point> uselessPoints)
+        /// <param name="area">Area of points to be skipped during current enumeration.</param>
+        public void Skip(Area area)
         {
-            foreach (var p in uselessPoints)
-                _sortedPoints.Remove(p);
+            foreach (Point p in _sortedPoints.ToArray())
+                if (area.Contains(p)) _sortedPoints.Remove(p);
+        }
+
+        public void Skip(IEnumerable<Point> toSkip)
+        {
+            foreach (Point p in _sortedPoints.ToArray())
+                if (toSkip.Contains(p)) _sortedPoints.Remove(p);
         }
 
         public Point Current { get; private set; }

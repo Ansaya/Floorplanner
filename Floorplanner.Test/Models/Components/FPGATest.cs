@@ -32,8 +32,8 @@ namespace Floorplanner.Test.Models.Components
         {
             IEnumerable<Point> fpgaPoints = fpga.ValidPoints;
 
-            // In test case there are no forbidden points
-            Assert.AreEqual((fpga.Xmax + 1) * (fpga.Ymax + 1), fpgaPoints.Count());
+            // In test case there are no forbidden and 40 null points
+            Assert.AreEqual((fpga.Xmax + 1) * (fpga.Ymax + 1) - 40, fpgaPoints.Count());
 
             foreach (Point p in fpgaPoints)
                 checkPointInside(p, 0, 0, 30, 9);

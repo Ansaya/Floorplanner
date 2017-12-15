@@ -21,7 +21,7 @@ namespace Floorplanner.Solver.Placers
         {
             NearestPointEnumerator nearestPoint = new NearestPointEnumerator(idealCenter, floorPlan.FreePoints);
 
-            while (!area.IsConfirmed)
+            while (true)
             {
 
                 // Find a suitable place to expand current area
@@ -45,7 +45,7 @@ namespace Floorplanner.Solver.Placers
                 };
 
                 // Remove all newly explored 
-                nearestPoint.Skip(area.Points);
+                nearestPoint.Skip(area);
 
                 // Validate the area and check if there are sufficent resources
                 // If validation isn't possible or left resources after validation
@@ -58,7 +58,7 @@ namespace Floorplanner.Solver.Placers
                     {
                         Area a = new Area(area);
 
-                        _areaReducer.Reduce(ref a, point, floorPlan);
+                        _areaReducer.Reduce(a, point, floorPlan);
 
                         return a;
                     })
@@ -71,7 +71,7 @@ namespace Floorplanner.Solver.Placers
                 area.Height = bestArea.Height;
                 area.MoveTo(bestArea.TopLeft);
 
-                area.IsConfirmed = true;
+                break;
             }
         }
 

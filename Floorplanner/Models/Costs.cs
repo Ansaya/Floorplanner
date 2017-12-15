@@ -8,11 +8,26 @@ namespace Floorplanner.Models
     {
         public int MaxScore { get; private set; }
 
-        public int Area { get; private set; }
+        public int AreaWeight { get; private set; }
 
-        public int WireLength { get; private set; }
+        public int WireWeight { get; private set; }
 
         public IReadOnlyDictionary<BlockType, int> ResourceWeight { get; private set; }
+
+        public Costs(int maxScore, int areaWeight, int wireWeight, int clb, int dsp, int bram)
+        {
+            MaxScore = maxScore;
+            AreaWeight = areaWeight;
+            WireWeight = wireWeight;
+            ResourceWeight = new Dictionary<BlockType, int>()
+            {
+                { BlockType.CLB, clb },
+                { BlockType.BRAM, bram },
+                { BlockType.DSP, dsp },
+                { BlockType.Forbidden, 0 },
+                { BlockType.Null, 0 }
+            };
+        }
 
         public static Costs Parse(TextReader atCosts)
         {
@@ -31,8 +46,8 @@ namespace Floorplanner.Models
             return new Costs()
             {
                 MaxScore = int.Parse(scoreAreaWirelength[0]),
-                Area = int.Parse(scoreAreaWirelength[1]),
-                WireLength = int.Parse(scoreAreaWirelength[2]),
+                AreaWeight = int.Parse(scoreAreaWirelength[1]),
+                WireWeight = int.Parse(scoreAreaWirelength[2]),
                 ResourceWeight = resW
             };
         }
