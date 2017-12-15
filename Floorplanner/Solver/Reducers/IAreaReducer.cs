@@ -1,12 +1,13 @@
 ﻿using Floorplanner.Models;
 using Floorplanner.Models.Solver;
+using System;
 
 namespace Floorplanner.Solver.Reducers
 {
     public interface IAreaReducer
     {
-        void Reduce(Area area, Point idealCenter, Floorplan floorPlan);
+        Func<Area, Costs, int> CostFunction { get; set; }
 
-        int GetCost(Area a, Costs c);
+        void Reduce(Area area, Point idealCenter, Floorplan floorPlan);
     }
 }

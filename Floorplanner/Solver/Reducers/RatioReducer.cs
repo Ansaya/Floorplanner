@@ -18,6 +18,16 @@ namespace Floorplanner.Solver.Reducers
 
         private readonly int _rDSPThres;
 
+        /// <summary>
+        /// Scoring function for areas
+        /// </summary>
+        /// <param name="a">Area to score.</param>
+        /// <param name="c">Costs values container.</param>
+        /// <returns>Area total score.</returns>
+        public Func<Area, Costs, int> CostFunction { get; set; } = 
+            (Area a, Costs c) => c.AreaWeight != 0 ? a.GetCost(c)
+                : a.GetCost(new Costs(c.MaxScore, c.WireWeight, c.WireWeight, 1, 1, 1));
+
         public RatioAreaReducer(double arBRAMratio, double arDSPratio, int rBRAMThres = 3, int rDSPThres = 3)
         {
             _arBRAMratio = arBRAMratio;
@@ -135,7 +145,7 @@ namespace Floorplanner.Solver.Reducers
 
             } while (exploredShrinkDir.Values.Any(explored => !explored));
 
-            return GetCost(area, floorPlan.Design.Costs);
+            return CostFunction(area, floorPlan.Design.Costs);
         }
 
         /// <summary>
@@ -167,15 +177,5 @@ namespace Floorplanner.Solver.Reducers
 
             return Math.Abs(yDistance) >= Math.Abs(xDistance);
         }
-
-        /// <summary>
-        /// Scoring function which takes into account resources cost and distance from
-        /// ideal area positioning
-        /// </summary>
-        /// <param name="a">Area to score.</param>
-        /// <param name="c">Costs values container.</param>
-        /// <returns>Area total score.</returns>
-        public int GetCost(Area a, Costs c) => c.AreaWeight != 0 ? a.GetCost(c)
-                : a.GetCost(new Costs(c.MaxScore, c.WireWeight, c.WireWeight, 1, 1, 1));
     }
 }
