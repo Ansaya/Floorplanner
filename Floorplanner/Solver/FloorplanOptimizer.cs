@@ -126,11 +126,12 @@ namespace Floorplanner.Solver
                         FinalizeOnUnfeasible(currentBest, minLeftRegions);
 
                     foreach (Area a in unplaceable) unconfirmed.Add(a);
+                    unplaceable.Clear();
 
                     int currentUnconf = unconfirmed.Count;
                     failDisrupt--;
 
-                    areaDisruptor.DisruptStateFor(unplaceable.First(), ref unconfirmed, firstPlan);
+                    areaDisruptor.DisruptStateFor(unconfirmed.First(), ref unconfirmed, firstPlan);
 
                     Console.WriteLine($"\tDisrupted {unconfirmed.Count - currentUnconf} areas from current solution.");
                 }
