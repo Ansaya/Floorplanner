@@ -26,8 +26,6 @@ namespace Floorplanner.Solver.Disruptors
             {
                 int max = (int)(confirmed.Count * 0.7);
 
-                Console.WriteLine($"\tDisrupting {max} areas from current solution.");
-
                 confirmed.Shuffle();
 
                 for (int i = 0; i < max; i++)
@@ -55,8 +53,6 @@ namespace Floorplanner.Solver.Disruptors
             int caosedAreas = _st.CaosFactor + _var.Next(-1 * _st.CaosVariance, _st.CaosVariance);
             if (caosedAreas <= 0)
                 caosedAreas = 1;
-
-            Console.WriteLine($"\tDisrupting {caosedAreas} areas from current solution.");
 
             int smallCaos = smaller.Count > bigger.Count ? (int)Math.Ceiling(caosedAreas * 0.65)
                 : (int)Math.Ceiling(caosedAreas * 0.8);

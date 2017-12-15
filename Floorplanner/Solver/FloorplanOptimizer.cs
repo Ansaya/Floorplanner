@@ -15,12 +15,6 @@ namespace Floorplanner.Solver
     {
         public Design Design { get; private set; }
 
-        private IAreaReducer _areaReducer;
-
-        private IAreaDisruptor _areaDisruptor;
-
-        private IAreaPlacer _areaPlacer;
-
         private readonly SolverTuning _st;
 
         public FloorplanOptimizer(Design toPlan, SolverTuning st = null)
@@ -31,32 +25,66 @@ namespace Floorplanner.Solver
 
         public Floorplan Solve()
         {
-            Floorplan firstPlan = new Floorplan(Design);
+
+            IAreaReducer areaReducer = new RatioAreaReducer(1.3, 1.3, 3, 3);
+            IAreaPlacer areaPlacer = new MinCostPlacer(areaReducer);
+            IAreaDisruptor areaDisruptor = new CommonResourcesDisruptor(_st);
+
+            Floorplan firstValidPlan = FirstValidPlacement(
+                new Floorplan(Design),
+                areaReducer,
+                areaPlacer,
+                areaDisruptor);
+
+            int currentBestScore = firstValidPlan.GetScore();
+
+            // TODO: update areaReducer scoring function to effective floorplan
+            //       objective function taking into account both area and wirelength
+
+            _st.MaxDisruption = (int)(_st.MaxDisruption * 0.1);
+
+            for(int i = 0; i < _st.MaxOptIteration; i++)
+            {
+                Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
+                        $"({_st.MaxOptIteration - i} remaining iterations)    " +
+                        $"(current score {currentBestScore:N0}/{Design.Costs.MaxScore:N0})";
+
+                // TODO: start some parallel calls of FirstValidPlacement and check if
+                //       better scores are there
+
+                // TODO: update current plan with better one if any and repeat the process
+                //       until max iteration number
+            }
+
+            Console.WriteLine("Region areas optimization completed successfully.");
+
+            return firstValidPlan;
+        }
+
+        private Floorplan FirstValidPlacement(Floorplan startingPlan, IAreaReducer areaReducer, IAreaPlacer areaPlacer, IAreaDisruptor areaDisruptor)
+        {
+            Floorplan firstPlan = new Floorplan(startingPlan);
             int failDisrupt = _st.MaxDisruption;
             int caosFactor = _st.CaosFactor;
 
             int minLeftRegions = firstPlan.Areas.Count;
             Floorplan currentBest = firstPlan;
 
-            _areaReducer = new RatioAreaReducer(1.3, 1.3, 2, 2);
-            _areaPlacer = new MinCostPlacer(_areaReducer);
-            _areaDisruptor = new CommonResourcesDisruptor(_st);
+            Console.WriteLine("Starting region placement...");
 
-            Console.WriteLine("Starting regions area optimization...");
-
-            IList<Area> unconfirmed = new List<Area>(firstPlan.Areas);
+            IList<Area> unconfirmed = new List<Area>(firstPlan.Areas.Where(a => !a.IsConfirmed));
             IList<Area> unplaceable = new List<Area>();
 
             // Place and disrupt areas until they are all placed in some position
-            while(unconfirmed.Count > 0)
+            while (unconfirmed.Count > 0)
             {
                 // Try position each unconfirmed area
-                for(int i = 0; i < unconfirmed.Count; i++)
+                for (int i = 0; i < unconfirmed.Count; i++)
                 {
                     Area area = unconfirmed[i];
 
                     Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
-                        $"({unconfirmed.Count} remaining regions)    " +
+                        $"({unconfirmed.Count + unplaceable.Count} remaining regions)    " +
                         $"({_st.MaxDisruption - failDisrupt} solution disruptions)";
 
                     PrintRegionTo(Console.Out, area.Region);
@@ -66,7 +94,7 @@ namespace Floorplanner.Solver
 
                     try
                     {
-                        _areaPlacer.PlaceArea(area, firstPlan, previousCenter);
+                        areaPlacer.PlaceArea(area, firstPlan, previousCenter);
                         area.IsConfirmed = true;
 
                         Console.WriteLine($"\tPlaced at ({area.TopLeft.X}, {area.TopLeft.Y})   " +
@@ -81,12 +109,12 @@ namespace Floorplanner.Solver
                     }
 
                     // Remove current area from unconfirmed list despite placement result
-                    unconfirmed.Remove(area);                    
+                    unconfirmed.Remove(area);
                 }
 
                 // If some areas remaind unplaced put them back in unconfirmed list,
                 // disrupt current state and try to place them again
-                if(unplaceable.Count() > 0)
+                if (unplaceable.Count() > 0)
                 {
                     if (minLeftRegions > unconfirmed.Count)
                     {
@@ -99,16 +127,14 @@ namespace Floorplanner.Solver
 
                     foreach (Area a in unplaceable) unconfirmed.Add(a);
 
+                    int currentUnconf = unconfirmed.Count;
                     failDisrupt--;
-                    _areaDisruptor.DisruptStateFor(unplaceable.First(), ref unconfirmed, firstPlan);
+
+                    areaDisruptor.DisruptStateFor(unplaceable.First(), ref unconfirmed, firstPlan);
+
+                    Console.WriteLine($"\tDisrupted {unconfirmed.Count - currentUnconf} areas from current solution.");
                 }
             }
-
-            int currentBestScore = firstPlan.GetScore();
-
-            // TODO: add disruption only cycles on feasible solution from previous cycles
-
-            Console.WriteLine("Region areas optimization completed successfully.");
 
             return firstPlan;
         }
