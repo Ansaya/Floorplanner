@@ -35,9 +35,12 @@ namespace Floorplanner
             unconfirmed.Add(a);
         }
 
-        public static Dictionary<BlockType, int> EmptyResources()
+        /// <summary>
+        /// Return a new empty resources dictionary
+        /// </summary>
+        public static Dictionary<BlockType, int> EmptyResources
         {
-            return new Dictionary<BlockType, int>()
+            get => new Dictionary<BlockType, int>()
             {
                 { BlockType.CLB, 0 },
                 { BlockType.BRAM, 0 },

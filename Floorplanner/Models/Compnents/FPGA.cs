@@ -64,16 +64,16 @@ namespace Floorplanner.Models.Components
             // Initialize all FPGA blocks
             fpga.Design = new BlockType[rows, cols];
 
-            IDictionary<BlockType, int> res = FPHelper.EmptyResources();
+            IDictionary<BlockType, int> res = FPHelper.EmptyResources;
             IList<Point> validPoints = new List<Point>();
             IDictionary<BlockType, int>[,] resFromOrigin = new Dictionary<BlockType, int>[cols + 1,rows + 1];
             for(int i = 0; i < Math.Max(rows, cols) + 1; i++)
             {
                 if (i <= rows)
-                    resFromOrigin[0, i] = FPHelper.EmptyResources();
+                    resFromOrigin[0, i] = FPHelper.EmptyResources;
 
                 if(i <= cols)
-                    resFromOrigin[i, 0] = FPHelper.EmptyResources();
+                    resFromOrigin[i, 0] = FPHelper.EmptyResources;
             }
 
             for (int r = 0; r < rows; r++)
@@ -94,7 +94,7 @@ namespace Floorplanner.Models.Components
                     if(r == 0)
                     {
                         if(c == 0)
-                            resFromOrigin[1, 1] = FPHelper.EmptyResources();
+                            resFromOrigin[1, 1] = FPHelper.EmptyResources;
                         else
                             resFromOrigin[c + 1, 1] = new Dictionary<BlockType, int>(resFromOrigin[c, 1]);
                     }

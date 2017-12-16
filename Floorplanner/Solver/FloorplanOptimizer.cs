@@ -27,7 +27,12 @@ namespace Floorplanner.Solver
 
         public Floorplan Solve()
         {
-            IAreaReducer areaReducer = new RatioAreaReducer(1.4, 1.4, 2, 2);
+            double PRRegionsRatio = Design.Regions.Count(r => r.Type == RegionType.Reconfigurable) / Design.Regions.Count();
+
+            IAreaReducer areaReducer =  new RatioAreaReducer(1.4, 1.4, 2, 2);
+            if (PRRegionsRatio > 0.75)
+                areaReducer = new PRAreaReducer(areaReducer);
+
             IAreaPlacer areaPlacer = new MinCostPlacer(areaReducer);
             IAreaDisruptor areaDisruptor = new CommonResourcesDisruptor(_st);
 

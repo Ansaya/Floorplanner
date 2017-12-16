@@ -27,7 +27,7 @@ namespace Floorplanner.Models
             
             region.Type = (RegionType)regionData[0][0];
 
-            Dictionary<BlockType, int> res = FPHelper.EmptyResources();
+            Dictionary<BlockType, int> res = FPHelper.EmptyResources;
             res[BlockType.CLB] = int.Parse(regionData[1]);
             res[BlockType.BRAM] = int.Parse(regionData[2]);
             res[BlockType.DSP] = int.Parse(regionData[3]);
