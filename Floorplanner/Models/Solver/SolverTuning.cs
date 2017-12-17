@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Floorplanner.Models.Solver
 {
@@ -16,7 +17,7 @@ namespace Floorplanner.Models.Solver
 
         public int ResourceDisruptThreshold { get; set; } = 2;
 
-        public int MaxConcurrent { get; set; } = 4;
+        public int MaxConcurrent { get; set; } = Environment.ProcessorCount;
 
         public void PrintValuesTo(TextWriter tw)
         {
