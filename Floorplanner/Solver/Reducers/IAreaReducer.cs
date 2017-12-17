@@ -6,6 +6,8 @@ namespace Floorplanner.Solver.Reducers
 {
     public interface IAreaReducer
     {
+        IAreaReducer Clone();
+
         /// <summary>
         /// Function used to calculate area cost
         /// </summary>

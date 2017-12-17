@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Floorplanner.Models.Solver
 {
-    public class Floorplan : IComparer<Area>
+    public class Floorplan
     {
         public Design Design { get; private set; }
 
@@ -33,31 +33,59 @@ namespace Floorplanner.Models.Solver
             Areas = new List<Area>(toCopy.Areas.Select(old => new Area(old)));
         }
 
+        /// <summary>
+        /// Calculate total floorplan score when all areas have been placed and confirmed.
+        /// </summary>
+        /// <exception cref="Exception">If called when some areas haven't been confirmed yet.</exception>
+        /// <returns>Overall floorplan score.</returns>
         public int GetScore()
         {
             if (Areas.Any(a => !a.IsConfirmed))
                 throw new Exception("Cannot calculate floorplan score if some areas haven't been placed.");
 
-            int totalArea = Areas.Sum(a => a.GetCost(Design.Costs));
+            return Design.Costs.MaxScore - GetCostFor(Areas);
+        }
 
+        /// <summary>
+        /// Calculate floorplan cost for currently confirmed areas plus given unconfirmed area.
+        /// </summary>
+        /// <param name="unconfirmed">Unconfirmed area to be added to cost computation.</param>
+        /// <returns>Partial cost value.</returns>
+        public int GetPartialCostWith(Area unconfirmed)
+        {
+            IList<Area> confirmed = new List<Area>(Areas.Where(a => a.IsConfirmed));
+            confirmed.Add(unconfirmed);
+
+            return GetCostFor(confirmed);
+        }
+
+        private int GetCostFor(IEnumerable<Area> areas)
+        {
+            // Get total areas cost
+            int totalArea = areas.Sum(a => a.GetCost(Design.Costs));
+
+            // Get I/O wire length
             double totalWireDistance = Areas
                 .Sum(a => a.Region.IOConns
                     .Sum(io => io.Point.ManhattanFrom(a.Center) * io.Wires));
-            
-            foreach(Area a in Areas)
-            {
-                Point current = a.Center;
 
-                for(int i = 0; i < Design.RegionWires.GetLength(1); i++)
+            // Get areas interconnections wirelength
+            foreach (Area a in areas)
+            {
+                Point aCenter = a.Center;
+
+                foreach (Area b in areas)
                 {
-                    int wires = Design.RegionWires[a.ID, i];
+                    if (a.ID == b.ID) continue;
+
+                    int wires = Design.RegionWires[a.ID, b.ID];
 
                     if (wires != 0)
-                        totalWireDistance += Areas[i].Center.ManhattanFrom(current) * wires;
+                        totalWireDistance += b.Center.ManhattanFrom(aCenter) * wires;
                 }
             }
-
-            return Design.Costs.MaxScore - totalArea * Design.Costs.AreaWeight - (int)totalWireDistance * Design.Costs.WireWeight;
+            
+            return totalArea * Design.Costs.AreaWeight + (int)totalWireDistance * Design.Costs.WireWeight;
         }
 
         /// <summary>
@@ -99,7 +127,7 @@ namespace Floorplanner.Models.Solver
                     Console.ForegroundColor = bt == BlockType.Forbidden ? ConsoleColor.DarkRed
                         : color[currentDesign[y, x]];
 
-                    Console.Write($" {(char)bt}");
+                    Console.Write($"{(char)bt}");
                 }
 
                 Console.WriteLine();
@@ -113,8 +141,6 @@ namespace Floorplanner.Models.Solver
             return x == a.TopLeft.X || x == a.TopLeft.X + a.Width
                 || y == a.TopLeft.Y || y == a.TopLeft.Y + a.Height;
         }
-
-        public int Compare(Area x, Area y) => Design.Compare(x.Region, y.Region);
 
         /// <summary>
         /// Check if given area is not overlapping with other areas in this floorplan and doesn't contain forbidden blocks.

@@ -21,21 +21,26 @@ namespace Floorplanner.Solver
 
         public FloorplanOptimizer(Design toPlan, SolverTuning st = null)
         {
+            if (!toPlan.IsFeasible)
+                throw new OptimizationException("Given design is infeasible.");
+
             Design = toPlan;
             _st = st ?? new SolverTuning();
         }
 
         public Floorplan Solve()
         {
+            // Setup placement tools to be used
             double PRRegionsRatio = Design.Regions.Count(r => r.Type == RegionType.Reconfigurable) / Design.Regions.Count();
 
-            IAreaReducer ratioReducer = new RatioAreaReducer(1.4, 1.4, 2, 2);
+            IAreaReducer ratioReducer = new RatioAreaReducer(1.4, 1.4, 100, 100);
             IAreaReducer prReducer = new PRAreaReducer(ratioReducer);
 
             IAreaReducer areaReducer = PRRegionsRatio > 0.75 ? prReducer : ratioReducer;
             IAreaPlacer areaPlacer = new MinCostPlacer(areaReducer);
             IAreaDisruptor areaDisruptor = new CommonResourcesDisruptor(_st);
 
+            // Search for a first valid placement for all regions
             Floorplan firstValidPlan = FirstValidPlacement(
                 new Floorplan(Design),
                 areaReducer,
@@ -43,22 +48,147 @@ namespace Floorplanner.Solver
                 areaDisruptor,
                 CancellationToken.None);
 
-            int currentBestScore = firstValidPlan.GetScore();
+            // Try to optimize current placement as much as possible
+            Floorplan optimizedPlan = OptimizeValid(
+                firstValidPlan,
+                new IAreaReducer[] { ratioReducer, prReducer },
+                areaPlacer,
+                areaDisruptor);
 
-            // TODO: update areaReducers scoring function to effective floorplan
-            //       objective function taking into account both area and wirelength
+            Console.WriteLine("Region areas optimization completed successfully.");
+
+            return optimizedPlan;
+        }
+
+        private Floorplan FirstValidPlacement(
+            Floorplan startingPlan, 
+            IAreaReducer areaReducer, 
+            IAreaPlacer areaPlacer, 
+            IAreaDisruptor areaDisruptor,
+            CancellationToken ct)
+        {
+            // Only first call when no valid plan has been found
+            // is a sequentail call and can print what's happening
+            bool canPrint = ct == CancellationToken.None;
+
+            Floorplan firstPlan = new Floorplan(startingPlan);
+            int failDisrupt = _st.MaxDisruption;
+            int caosFactor = _st.CaosFactor;
+
+            int minLeftRegions = firstPlan.Areas.Count;
+            Floorplan currentBest = firstPlan;
+
+            if(canPrint)
+                Console.WriteLine("Starting region placement...");
+
+            IList<Area> unconfirmed = new List<Area>(firstPlan.Areas.Where(a => !a.IsConfirmed));
+
+            // Place and disrupt areas until they are all placed in some position
+            while (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
+            {
+                // Try position each unconfirmed area
+                for (int i = 0; i < unconfirmed.Count && !ct.IsCancellationRequested; )
+                {
+                    Area area = unconfirmed[i];
+
+                    if (canPrint)
+                        Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
+                        $"({unconfirmed.Count, -3} remaining regions)    " +
+                        $"({_st.MaxDisruption - failDisrupt, -4} solution disruptions)";
+
+                    if (canPrint) PrintRegionTo(Console.Out, area.Region);
+
+                    // Try to place current region exploring free areas next to previous
+                    Point previousCenter = i > 0 ? unconfirmed[i - 1].Center
+                        : area.Center;
+
+                    try
+                    {
+                        // Place the area, confirm it in current floorplan
+                        // and remove it from unconfirmed list
+                        areaPlacer.PlaceArea(area, firstPlan, previousCenter);
+                        area.IsConfirmed = true;
+                        unconfirmed.Remove(area);
+
+                        if (canPrint)
+                            Console.WriteLine($"\tPlaced at ({area.TopLeft.X, -3}, {area.TopLeft.Y, -3})   " +
+                            $"Width: {area.Height}   Height: {area.Width}");
+                    }
+                    catch (OptimizationException)
+                    {
+                        // If current area couldn't be placed, go to next area
+                        i++;
+
+                        if (canPrint)
+                            Console.WriteLine($"Can't place area {area.ID} with current state.");
+                    }
+                }
+
+                // If some areas remained unplaced,
+                // disrupt current state and try to place them again
+                if (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
+                {
+                    // If current partial result is better than last
+                    // update current best
+                    if (minLeftRegions > unconfirmed.Count)
+                    {
+                        minLeftRegions = unconfirmed.Count;
+                        currentBest = new Floorplan(firstPlan);
+                    }
+
+                    // When maximum number of disruption has been reached stop computation
+                    if (failDisrupt == 0)
+                    {
+                        // If on main instance print error information
+                        if (canPrint) PrintIncompleteToConsole(currentBest);
+
+                        throw new OptimizationException($"{minLeftRegions} out of {currentBest.Areas.Count} " + 
+                            $"regions couldn't be placed after {_st.MaxDisruption} disruption.\n");
+                    }
+
+                    int currentUnconf = unconfirmed.Count;
+                    failDisrupt--;
+
+                    areaDisruptor.DisruptStateFor(unconfirmed.First().Region, unconfirmed, firstPlan);
+
+                    if (canPrint)
+                        Console.WriteLine($"\tDisrupted {unconfirmed.Count - currentUnconf} " +
+                            "areas from current solution.");
+                }
+            }
+
+            return firstPlan;
+        }
+
+        /// <summary>
+        /// Optimize a valid floorplan as much as possible
+        /// exploiting given tools
+        /// </summary>
+        /// <param name="bestFloorplan">Floorplan to start from.</param>
+        /// <param name="areaReducers">Area reducers to be used.</param>
+        /// <param name="areaPlacer">Area placer to be used.</param>
+        /// <param name="areaDisruptor">Area disruptor to be used.</param>
+        /// <returns>Optimized floorplan if any is found.</returns>
+        private Floorplan OptimizeValid(
+            Floorplan bestFloorplan, 
+            IAreaReducer[] areaReducers, 
+            IAreaPlacer areaPlacer, 
+            IAreaDisruptor areaDisruptor)
+        {
+            int currentBestScore = bestFloorplan.GetScore();
 
             // Update max disruptions per iteration 
             // and set maximum concurrent operations number
             _st.MaxDisruption = (int)(_st.MaxDisruption * _st.DisruptPerIteration);
             int concOpt = Math.Min(Design.Regions.Length, _st.MaxConcurrent);
 
-
+            // Try optimizing current floorplan running some parallel tasks
+            // for specified number of iterations
             for (int i = 1; i <= _st.MaxOptIteration; i++)
             {
                 Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
-                        $"({_st.MaxOptIteration - i} remaining iterations)    " +
-                        $"(current score {currentBestScore:N0}/{Design.Costs.MaxScore:N0})";
+                        $"({_st.MaxOptIteration - i,-3} remaining iterations)    " +
+                        $"(current score {currentBestScore,-8:N0}/{Design.Costs.MaxScore:N0})";
 
                 Console.WriteLine($"Optimization iteration {i}...");
 
@@ -68,23 +198,31 @@ namespace Floorplanner.Solver
                     0.4 * Design.Regions.Length * Math.Min(i * 1.5 / _st.MaxOptIteration, 1));
 
                 // Set up some optimization tasks disrupting different areas 
-                // from current best floorplan
+                // from current best floorplan to try getting a better result
+                // on floorplan score
                 Task<Floorplan>[] fpOptimizers = new Task<Floorplan>[concOpt];
                 CancellationTokenSource cts = new CancellationTokenSource();
 
-                IList<Area> areas = new List<Area>(firstValidPlan.Areas);
+                IList<Area> areas = new List<Area>(bestFloorplan.Areas);
                 areas.Shuffle();
 
                 for (int j = 0; j < concOpt; j++)
                 {
-                    Floorplan disFP = new Floorplan(firstValidPlan);
-
+                    // Duplicate current floorplan and disrupt for an area
+                    Floorplan disFP = new Floorplan(bestFloorplan);
                     areaDisruptor.DisruptStateFor(areas[j].Region, new List<Area>(), disFP);
 
+                    // Clone area reducer object and associate cost function to duplicated
+                    // floorplan partial cost function
+                    IAreaReducer associatedReducer = i % 2 == 0 ? areaReducers[0] : areaReducers[1];
+                    associatedReducer = associatedReducer.Clone();
+                    associatedReducer.CostFunction = (Area a, Costs c) => disFP.GetPartialCostWith(a);
+
+                    // Generate new task with duplicated floorplan and associated area reducer
                     fpOptimizers[j] = Task.Factory.StartNew(FirstValidPlacement, new OptTools()
                     {
                         Floorplan = disFP,
-                        AreaReducer = i % 2 == 0 ? ratioReducer : prReducer,
+                        AreaReducer = associatedReducer,
                         AreaPlacer = areaPlacer,
                         AreaDisruptor = areaDisruptor,
                         CancellationToken = cts.Token
@@ -93,68 +231,65 @@ namespace Floorplanner.Solver
 
                 // Check for key press if user wants to abort iterations
                 // and get current result
-                bool userAbort = false;
-                Task.Factory.StartNew(token =>
+                Task userAbort = Task.Factory.StartNew(token =>
                 {
-                    CancellationToken t = (CancellationToken)token;
+                    CancellationToken ct = (CancellationToken)token;
 
-                    while(true && !t.IsCancellationRequested)
+                    while (true && !ct.IsCancellationRequested)
                     {
                         if (Console.KeyAvailable)
                         {
                             Console.ReadKey(true);
-                            userAbort = true;
                             cts.Cancel();
+                            break;
                         }
 
                         Thread.Sleep(500);
                     }
                 }, cts.Token, cts.Token);
 
-                // Wait for any of launched optimization tasks and check if result
-                // is better of current floorplan
-                while(fpOptimizers.Any(t => !t.IsCompleted))
+                // Wait for any of the launched optimization tasks and 
+                // check if result is better of current floorplan
+                while (fpOptimizers.Any(t => !t.IsCompleted))
                 {
-                    int completed = Task.WaitAny(fpOptimizers.ToArray(), cts.Token);
+                    int completed = Task.WaitAny(fpOptimizers);
 
                     // Abort iteration sequence if user requested
-                    if(cts.IsCancellationRequested)
+                    if (cts.IsCancellationRequested)
                     {
-                        userAbort = true;
                         Console.WriteLine("Iteration sequence aborted.");
-                        break;
+                        Task.WaitAll(fpOptimizers);
+                        userAbort.Wait();
+                        return bestFloorplan;
                     }
 
+                    // If new floorplan is better than current, update it,
+                    // abort other optimization tasks and complete current iteration
                     Floorplan newFP = fpOptimizers[completed].Result;
 
-                    // If new floorplan is better, update current one
-                    // Abort other optimization workers and complete current iteration
-                    if(newFP != null && newFP.GetScore() > currentBestScore)
+                    if (newFP != null && newFP.GetScore() > currentBestScore)
                     {
                         cts.Cancel();
-                        firstValidPlan = newFP;
+                        bestFloorplan = newFP;
                         currentBestScore = newFP.GetScore();
 
                         Console.WriteLine($"Better solution found!\n" +
                             $"\tNew score {currentBestScore:N0}/{Design.Costs.MaxScore:N0}");
 
+                        Task.WaitAll(fpOptimizers);
                         break;
                     }
+
+                    // Else wait for another task to complete
                 }
 
-                Task.WaitAll(fpOptimizers);
-
-                // Stop user key press wait task
-                if(!cts.IsCancellationRequested)
+                if (!cts.IsCancellationRequested)
                     cts.Cancel();
 
-                // Stop computation if user requested
-                if (userAbort) break;
+                userAbort.Wait();
             }
 
-            Console.WriteLine("Region areas optimization completed successfully.");
-
-            return firstValidPlan;
+            return bestFloorplan;
         }
 
         private class OptTools
@@ -177,10 +312,10 @@ namespace Floorplanner.Solver
             try
             {
                 return FirstValidPlacement(
-                    tools.Floorplan, 
-                    tools.AreaReducer, 
-                    tools.AreaPlacer, 
-                    tools.AreaDisruptor, 
+                    tools.Floorplan,
+                    tools.AreaReducer,
+                    tools.AreaPlacer,
+                    tools.AreaDisruptor,
                     tools.CancellationToken);
             }
             catch (OptimizationException)
@@ -188,108 +323,13 @@ namespace Floorplanner.Solver
                 // If optimization process couldn't place all regions again return null
                 return null;
             }
-        }            
-
-        private Floorplan FirstValidPlacement(
-            Floorplan startingPlan, 
-            IAreaReducer areaReducer, 
-            IAreaPlacer areaPlacer, 
-            IAreaDisruptor areaDisruptor,
-            CancellationToken ct)
-        {
-            bool canPrint = ct == CancellationToken.None;
-
-            Floorplan firstPlan = new Floorplan(startingPlan);
-            int failDisrupt = _st.MaxDisruption;
-            int caosFactor = _st.CaosFactor;
-
-            int minLeftRegions = firstPlan.Areas.Count;
-            Floorplan currentBest = new Floorplan(firstPlan);
-
-            if(canPrint)
-                Console.WriteLine("Starting region placement...");
-
-            IList<Area> unconfirmed = new List<Area>(firstPlan.Areas.Where(a => !a.IsConfirmed));
-
-            // Place and disrupt areas until they are all placed in some position
-            while (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
-            {
-                // Try position each unconfirmed area
-                for (int i = 0; i < unconfirmed.Count && !ct.IsCancellationRequested; )
-                {
-                    Area area = unconfirmed[i];
-
-                    if (canPrint)
-                        Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
-                        $"({unconfirmed.Count} remaining regions)    " +
-                        $"({_st.MaxDisruption - failDisrupt} solution disruptions)";
-
-                    if (canPrint)
-                        PrintRegionTo(Console.Out, area.Region);
-
-                    Point previousCenter = i > 0 ? unconfirmed[i - 1].Center
-                        : area.Center;
-
-                    try
-                    {
-                        areaPlacer.PlaceArea(area, firstPlan, previousCenter);
-                        area.IsConfirmed = true;
-
-                        if (canPrint)
-                            Console.WriteLine($"\tPlaced at ({area.TopLeft.X}, {area.TopLeft.Y})   " +
-                            $"Width: {area.Height}   Height: {area.Width}");
-                    }
-                    catch (OptimizationException)
-                    {
-                        // If current area couldn't be placed, store it away and go ahead with
-                        // remaining areas
-                        if (canPrint)
-                            Console.WriteLine($"Can't place area {area.ID} with current state.");
-
-                        i++;
-                        continue;
-                    }
-
-                    // Remove current area from unconfirmed list despite placement result
-                    unconfirmed.Remove(area);
-                }
-
-                // If some areas remaind unplaced,
-                // disrupt current state and try to place them again
-                if (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
-                {
-                    if (minLeftRegions > unconfirmed.Count)
-                    {
-                        minLeftRegions = unconfirmed.Count;
-                        currentBest = new Floorplan(firstPlan);
-                    }
-
-                    // When maximum nber of disruption has been reached stop computation
-                    if (failDisrupt == 0)
-                    {
-                        // If on main instance print error information
-                        if (canPrint)
-                            FinalizeOnUnfeasible(currentBest, minLeftRegions);
-
-                        throw new OptimizationException($"{minLeftRegions} out of {currentBest.Areas.Count} " + 
-                            $"regions couldn't be placed after {_st.MaxDisruption} disruption.\n");
-                    }
-
-                    int currentUnconf = unconfirmed.Count;
-                    failDisrupt--;
-
-                    areaDisruptor.DisruptStateFor(unconfirmed.First().Region, unconfirmed, firstPlan);
-
-                    if (canPrint)
-                        Console.WriteLine($"\tDisrupted {unconfirmed.Count - currentUnconf} " +
-                            "areas from current solution.");
-                }
-            }
-
-            return firstPlan;
         }
 
-        private void FinalizeOnUnfeasible(Floorplan bestPlan, int leftRegions)
+        /// <summary>
+        /// Print given floorplan information
+        /// </summary>
+        /// <param name="bestPlan">Incomplete floorplan.</param>
+        private void PrintIncompleteToConsole(Floorplan bestPlan)
         {
             Console.WriteLine("\nMissing regions are:");
             foreach (Area a in bestPlan.Areas.Where(a => !a.IsConfirmed))
@@ -297,11 +337,21 @@ namespace Floorplanner.Solver
                 Console.Write("\t");
                 PrintRegionTo(Console.Out, a.Region);
             }
-            Console.WriteLine();
+            IEnumerable<Area> confirmed = bestPlan.Areas.Where(a => a.IsConfirmed);
+
+            Console.WriteLine($"\nPlaced areas statistics:\n" +
+                $"\tMedium region height: {confirmed.Average(a => a.Height + 1):N4}\n" +
+                $"\tMedium region width: {confirmed.Average(a => a.Width + 1):N4}\n");
+            
             bestPlan.PrintDesignToConsole();
             Console.WriteLine();
         }
 
+        /// <summary>
+        /// Print specified region information to given text writer.
+        /// </summary>
+        /// <param name="tw">Text writer to print to.</param>
+        /// <param name="r">Region to print information.</param>
         private void PrintRegionTo(TextWriter tw, Region r)
         {
             tw.WriteLine($"Region {r.ID} - {r.Resources[BlockType.CLB]} CLB" +

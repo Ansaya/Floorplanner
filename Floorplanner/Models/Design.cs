@@ -1,11 +1,10 @@
 ﻿using Floorplanner.Models.Components;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
 namespace Floorplanner.Models
 {
-    public class Design : IComparer<Region>
+    public class Design
     {
         public string ID { get; private set; }
 
@@ -17,12 +16,13 @@ namespace Floorplanner.Models
 
         public int[,] RegionWires { get; private set; }
 
-        private double _regResPercentage;
+        private bool _isFeasible;
 
-        /// <summary>
-        /// Return resources percentage on total FPGA available resources
-        /// </summary>
-        public double RequeiredResources { get => _regResPercentage; }
+        public bool IsFeasible { get => _isFeasible; }
+
+        private string _statString;
+
+        public string Stats { get => _statString; }
 
         public static Design Parse(TextReader designFileContent)
         {
@@ -50,55 +50,26 @@ namespace Floorplanner.Models
                     design.RegionWires[i, j] = int.Parse(currentRow[j]);
             }
 
-            double regResReq = design.Regions.SelectMany(r => r.Resources).Sum(kv => kv.Value);
-            double fpgaRes = design.FPGA.Resources[BlockType.CLB] + design.FPGA.Resources[BlockType.BRAM]
-                + design.FPGA.Resources[BlockType.DSP];
+            int clbs = design.FPGA.Resources[BlockType.CLB];
+            int brams = design.FPGA.Resources[BlockType.BRAM];
+            int dsps = design.FPGA.Resources[BlockType.DSP];
 
-            design._regResPercentage = regResReq / fpgaRes;
+            int rclbs = design.Regions.Sum(r => r.Resources[BlockType.CLB]);
+            int rbrams = design.Regions.Sum(r => r.Resources[BlockType.BRAM]);
+            int rdsps = design.Regions.Sum(r => r.Resources[BlockType.DSP]);
+
+            double resRatio = (double)(rclbs + rbrams + rdsps) / (clbs + brams + clbs);
+
+            design._isFeasible = clbs >= rclbs && brams >= rbrams && dsps >= rdsps;
+
+            design._statString = $"Requires to allocate {design.Regions.Length} regions.\n" +
+                $"\t{design.Regions.Count(r => r.IOConns.Any())} regions have I/O connections\n" +
+                $"\t{design.Regions.Count(r => r.Type == RegionType.Static)} static\t" +
+                $"\t{design.Regions.Count(r => r.Type == RegionType.Reconfigurable)} reconfigurable\n" +
+                $"\tAll regions requires {resRatio:P2} of total resources.\n" +
+                $"\t{rclbs}/{clbs} CLB\t{rbrams}/{brams} BRAM\t{rdsps}/{dsps} DSP  ";
 
             return design;
-        }
-
-        public int Compare(Region x, Region y)
-        {
-            if (x.ID == y.ID) return 0;
-
-            double xCost = GetRegionWeight(x);
-            double yCost = GetRegionWeight(y);
-
-            if(xCost == yCost)
-            {
-                xCost -= x.ID;
-                yCost -= y.ID;
-            }
-
-            return xCost > yCost ? -1
-                : 1;
-        }
-
-        /// <summary>
-        /// Calculate an internal weight for the given region, useful to create a hierarchy among regions.
-        /// The more weight, the more a region is resource demanding
-        /// </summary>
-        /// <param name="x">Region to calculate score for.</param>
-        /// <returns>Internal region weight.</returns>
-        public double GetRegionWeight(Region x)
-        {
-            if (x.IOConns.Length > 0)
-                return double.MaxValue - x.ID;
-
-            double interConnScore = 0;
-
-            for (int i = 0; i < RegionWires.GetLength(1); i++)
-                interConnScore += RegionWires[x.ID, i];
-
-            double resourcesScore = x.Resources[BlockType.CLB] * Costs.ResourceWeight[BlockType.CLB]
-                + x.Resources[BlockType.BRAM] * FPGA.CLBratioBRAM * Costs.ResourceWeight[BlockType.BRAM]
-                + x.Resources[BlockType.DSP] * FPGA.CLBratioDSP * Costs.ResourceWeight[BlockType.DSP];
-
-            double recMult = x.Type == RegionType.Reconfigurable ? 1.2 : 1;
-
-            return recMult * resourcesScore * Costs.AreaWeight;// + interConnScore * Costs.WireLength * 0.5;
         }
     }
 }

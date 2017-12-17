@@ -36,6 +36,14 @@ namespace Floorplanner.Solver.Reducers
             _rDSPThres = rDSPThres;
         }
 
+        public IAreaReducer Clone()
+        {
+            IAreaReducer clone = new RatioAreaReducer(_arBRAMratio, _arDSPRatio, _rBRAMThres, _rDSPThres);
+            clone.CostFunction = CostFunction;
+
+            return clone;
+        }
+
         /// <summary>
         /// Reduce given area cost as much as possible also trying to near area center to ideal one.
         /// </summary>
@@ -70,7 +78,8 @@ namespace Floorplanner.Solver.Reducers
                 area.Height = best.Height;
                 area.MoveTo(best.TopLeft);
 
-                //Console.WriteLine($"\t{(homHetReduce ? "Heterogeneous" : "Homogeneous")} reduce branch taken.");
+                //Console.WriteLine($"\t{(homHetReduce ? "Heterogeneous" : "Homogeneous")} reduce branch taken. (From both)");
+                return;
             }
 
             //Console.WriteLine("\tHeterogeneous reduce branch taken.");

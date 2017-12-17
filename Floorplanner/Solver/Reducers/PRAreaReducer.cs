@@ -39,6 +39,14 @@ namespace Floorplanner.Solver.Reducers
             _backupReducer = bacukpReducer;
         }
 
+        public IAreaReducer Clone()
+        {
+            IAreaReducer clone = new PRAreaReducer(_backupReducer);
+            clone.CostFunction = CostFunction;
+
+            return clone;
+        }
+
         public void Reduce(Area area, Point idealCenter, Floorplan floorPlan)
         {
             if(area.Type == RegionType.Static)

@@ -138,11 +138,14 @@ namespace Floorplanner
 
             Console.WriteLine("Design constraints loaded succesfully.");
 
-            Console.WriteLine($"Requires to allocate {problem.Regions.Length} regions.\n" +
-                $"\t{problem.Regions.Count(r => r.IOConns.Any())} regions have I/O connections\n" +
-                $"\t{problem.Regions.Count(r => r.Type == RegionType.Static)} static\t" +
-                $"\t{problem.Regions.Count(r => r.Type == RegionType.Reconfigurable)} reconfigurable\n" +
-                $"\tAll regions requires {problem.RequeiredResources:P2} of total resources.\n");
+            Console.WriteLine(problem.Stats);
+
+            if(!problem.IsFeasible)
+            {
+                Console.WriteLine($"Problem {problem.ID} is infeasible.\n" +
+                    "Submitted regions require more resources than the FPGA can offer.");
+                return $"Problem {problem.ID}: computation infeasible.\n";
+            }
                         
             if(_opt.CaosFactor == -57)
                 _opt.CaosFactor = (int)Math.Ceiling(Math.Max(3, problem.Regions.Length * 0.2));
@@ -165,7 +168,7 @@ namespace Floorplanner
             {
                 Console.WriteLine($"Error during optimization process...");
                 Console.WriteLine("\t" + e.Message);
-                return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: computation infeasible.\n" +
+                return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: computation time exceeded.\n" +
                     $"\t{e.Message}\n";
             }
 
@@ -195,7 +198,7 @@ namespace Floorplanner
                 Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(outputFile)}'.\n");
             }
 
-            return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore:N0}\n" +
+            return $"Problem {problem.ID}: {planScore:N0}\n" +
                 $"\tMedium region height: {optimiezdPlan.Areas.Average(a => a.Height + 1):N4}\n" +
                 $"\tMedium region width: {optimiezdPlan.Areas.Average(a => a.Width + 1):N4}\n";
         }
