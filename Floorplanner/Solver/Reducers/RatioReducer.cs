@@ -26,7 +26,7 @@ namespace Floorplanner.Solver.Reducers
         /// <returns>Area total score.</returns>
         public Func<Area, Costs, int> CostFunction { get; set; } = 
             (Area a, Costs c) => c.AreaWeight != 0 ? a.GetCost(c)
-                : a.GetCost(new Costs(c.MaxScore, c.WireWeight, c.WireWeight, 1, 1, 1));
+                : a.GetCost(c.ToNonZero());
 
         public RatioAreaReducer(double arBRAMratio, double arDSPratio, int rBRAMThres = 3, int rDSPThres = 3)
         {
@@ -95,7 +95,7 @@ namespace Floorplanner.Solver.Reducers
 
                 // Chose a shrinking axis looking at area/region BRAM's and DSP's ratios
                 // and check if chosen axis hasn't been completely explored yet
-                bool widthHeightShrink = shrinkArbiter.Invoke(area, idealCenter);
+                bool widthHeightShrink = shrinkArbiter(area, idealCenter);
 
                 widthHeightShrink = widthHeightShrink
                     && (!exploredShrinkDir[Direction.Up] || !exploredShrinkDir[Direction.Down]);

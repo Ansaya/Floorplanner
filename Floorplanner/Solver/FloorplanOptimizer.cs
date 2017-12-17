@@ -29,10 +29,10 @@ namespace Floorplanner.Solver
         {
             double PRRegionsRatio = Design.Regions.Count(r => r.Type == RegionType.Reconfigurable) / Design.Regions.Count();
 
-            IAreaReducer areaReducer =  new RatioAreaReducer(1.4, 1.4, 2, 2);
-            if (PRRegionsRatio > 0.75)
-                areaReducer = new PRAreaReducer(areaReducer);
+            IAreaReducer ratioReducer = new RatioAreaReducer(1.4, 1.4, 2, 2);
+            IAreaReducer prReducer = new PRAreaReducer(ratioReducer);
 
+            IAreaReducer areaReducer = PRRegionsRatio > 0.75 ? prReducer : ratioReducer;
             IAreaPlacer areaPlacer = new MinCostPlacer(areaReducer);
             IAreaDisruptor areaDisruptor = new CommonResourcesDisruptor(_st);
 
@@ -45,63 +45,90 @@ namespace Floorplanner.Solver
 
             int currentBestScore = firstValidPlan.GetScore();
 
-            // TODO: update areaReducer scoring function to effective floorplan
+            // TODO: update areaReducers scoring function to effective floorplan
             //       objective function taking into account both area and wirelength
 
+            // Update max disruptions per iteration 
+            // and set maximum concurrent operations number
             _st.MaxDisruption = (int)(_st.MaxDisruption * _st.DisruptPerIteration);
-
             int concOpt = Math.Min(Design.Regions.Length, _st.MaxConcurrent);
+
 
             for (int i = 1; i <= _st.MaxOptIteration; i++)
             {
-                IList<Area> areas = new List<Area>(firstValidPlan.Areas);
-                areas.Shuffle();
-
                 Console.Title = $"Floorplanner: optimizing problem {Design.ID}    " +
                         $"({_st.MaxOptIteration - i} remaining iterations)    " +
                         $"(current score {currentBestScore:N0}/{Design.Costs.MaxScore:N0})";
 
                 Console.WriteLine($"Optimization iteration {i}...");
 
+                // Increment caos factor from standard value to 40% of total regions
+                // during different iterations
                 _st.CaosFactor = (int)Math.Max(_st.CaosFactor,
-                    0.4 * Design.Regions.Length * (i * 1.3 / _st.MaxOptIteration));
+                    0.4 * Design.Regions.Length * Math.Min(i * 1.5 / _st.MaxOptIteration, 1));
 
+                // Set up some optimization tasks disrupting different areas 
+                // from current best floorplan
                 Task<Floorplan>[] fpOptimizers = new Task<Floorplan>[concOpt];
                 CancellationTokenSource cts = new CancellationTokenSource();
 
-                for(int j = 0; j < concOpt; j++)
+                IList<Area> areas = new List<Area>(firstValidPlan.Areas);
+                areas.Shuffle();
+
+                for (int j = 0; j < concOpt; j++)
                 {
                     Floorplan disFP = new Floorplan(firstValidPlan);
 
                     areaDisruptor.DisruptStateFor(areas[j].Region, new List<Area>(), disFP);
 
-                    fpOptimizers[j] = Task.Factory.StartNew(optTools =>
-                    {
-                        OptTools tools = (OptTools)optTools;
-
-                        try
-                        {
-                            return FirstValidPlacement(tools);
-                        }
-                        catch (OptimizationException) { }
-
-                        return null;
-                    }, new OptTools()
+                    fpOptimizers[j] = Task.Factory.StartNew(FirstValidPlacement, new OptTools()
                     {
                         Floorplan = disFP,
-                        AreaReducer = areaReducer,
+                        AreaReducer = i % 2 == 0 ? ratioReducer : prReducer,
                         AreaPlacer = areaPlacer,
                         AreaDisruptor = areaDisruptor,
                         CancellationToken = cts.Token
                     });
                 }
-                
+
+                // Check for key press if user wants to abort iterations
+                // and get current result
+                bool userAbort = false;
+                Task.Factory.StartNew(token =>
+                {
+                    CancellationToken t = (CancellationToken)token;
+
+                    while(true && !t.IsCancellationRequested)
+                    {
+                        if (Console.KeyAvailable)
+                        {
+                            Console.ReadKey(true);
+                            userAbort = true;
+                            cts.Cancel();
+                        }
+
+                        Thread.Sleep(500);
+                    }
+                }, cts.Token, cts.Token);
+
+                // Wait for any of launched optimization tasks and check if result
+                // is better of current floorplan
                 while(fpOptimizers.Any(t => !t.IsCompleted))
                 {
-                    int completed = Task.WaitAny(fpOptimizers.ToArray());
+                    int completed = Task.WaitAny(fpOptimizers.ToArray(), cts.Token);
+
+                    // Abort iteration sequence if user requested
+                    if(cts.IsCancellationRequested)
+                    {
+                        userAbort = true;
+                        Console.WriteLine("Iteration sequence aborted.");
+                        break;
+                    }
 
                     Floorplan newFP = fpOptimizers[completed].Result;
 
+                    // If new floorplan is better, update current one
+                    // Abort other optimization workers and complete current iteration
                     if(newFP != null && newFP.GetScore() > currentBestScore)
                     {
                         cts.Cancel();
@@ -116,6 +143,13 @@ namespace Floorplanner.Solver
                 }
 
                 Task.WaitAll(fpOptimizers);
+
+                // Stop user key press wait task
+                if(!cts.IsCancellationRequested)
+                    cts.Cancel();
+
+                // Stop computation if user requested
+                if (userAbort) break;
             }
 
             Console.WriteLine("Region areas optimization completed successfully.");
@@ -136,8 +170,25 @@ namespace Floorplanner.Solver
             public CancellationToken CancellationToken { get; set; }
         }
 
-        private Floorplan FirstValidPlacement(OptTools tools) =>
-            FirstValidPlacement(tools.Floorplan, tools.AreaReducer, tools.AreaPlacer, tools.AreaDisruptor, tools.CancellationToken);
+        private Floorplan FirstValidPlacement(object optTools)
+        {
+            OptTools tools = (OptTools)optTools;
+
+            try
+            {
+                return FirstValidPlacement(
+                    tools.Floorplan, 
+                    tools.AreaReducer, 
+                    tools.AreaPlacer, 
+                    tools.AreaDisruptor, 
+                    tools.CancellationToken);
+            }
+            catch (OptimizationException)
+            {
+                // If optimization process couldn't place all regions again return null
+                return null;
+            }
+        }            
 
         private Floorplan FirstValidPlacement(
             Floorplan startingPlan, 
@@ -164,7 +215,7 @@ namespace Floorplanner.Solver
             while (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
             {
                 // Try position each unconfirmed area
-                for (int i = 0; i < unconfirmed.Count && !ct.IsCancellationRequested; i++)
+                for (int i = 0; i < unconfirmed.Count && !ct.IsCancellationRequested; )
                 {
                     Area area = unconfirmed[i];
 
@@ -195,6 +246,7 @@ namespace Floorplanner.Solver
                         if (canPrint)
                             Console.WriteLine($"Can't place area {area.ID} with current state.");
 
+                        i++;
                         continue;
                     }
 

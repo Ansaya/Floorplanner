@@ -151,8 +151,7 @@ namespace Floorplanner.Models.Solver
             IsConfirmed = copy.IsConfirmed;
         }
 
-        public int GetCost(Costs costs) => 
-            Resources.Sum(pair => pair.Value * costs.ResourceWeight[pair.Key]);
+        public int GetCost(Costs costs) => Resources.GetCost(costs);
 
         /// <summary>
         /// Move the area to the given point.

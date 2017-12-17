@@ -80,6 +80,7 @@
     <Compile Include="Solver\Placers\NearestCenterPlacer.cs" />
     <Compile Include="Solver\Placers\PlacerHelper.cs" />
     <Compile Include="Solver\Reducers\PRAreaReducer.cs" />
+    <Compile Include="Solver\Reducers\ReducerHelper.cs" />
     <Compile Include="Solver\RouteOptimizers\AmplRouteOptimizer.cs" />
     <Compile Include="Solver\Reducers\IAreaReducer.cs" />
     <Compile Include="Solver\RouteOptimizers\IRouteOptimizer.cs" />

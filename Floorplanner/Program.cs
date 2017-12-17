@@ -177,6 +177,7 @@ namespace Floorplanner
             if(planScore <= 0)
             {
                 Console.WriteLine("Score is negative. Not writing solution.\n");
+                optimiezdPlan.PrintDesignToConsole();
                 return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: negative score.";
             }
 
@@ -194,9 +195,9 @@ namespace Floorplanner
                 Console.WriteLine($"Optimized floorplan written to '{Path.GetFullPath(outputFile)}'.\n");
             }
 
-            return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore}\n" +
-                $"\tMedium region height: {optimiezdPlan.Areas.Average(a => a.Height + 1)}\n" +
-                $"\tMedium region width: {optimiezdPlan.Areas.Average(a => a.Width + 1)}\n";
+            return $"Problem {Path.GetFileNameWithoutExtension(inputFile)}: {planScore:N0}\n" +
+                $"\tMedium region height: {optimiezdPlan.Areas.Average(a => a.Height + 1):N4}\n" +
+                $"\tMedium region width: {optimiezdPlan.Areas.Average(a => a.Width + 1):N4}\n";
         }
     }
 }

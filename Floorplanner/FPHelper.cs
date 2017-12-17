@@ -1,4 +1,5 @@
-﻿using Floorplanner.Models.Components;
+﻿using Floorplanner.Models;
+using Floorplanner.Models.Components;
 using Floorplanner.Models.Solver;
 using System;
 using System.Collections.Generic;
@@ -34,6 +35,9 @@ namespace Floorplanner
             a.IsConfirmed = false;
             unconfirmed.Add(a);
         }
+
+        public static int GetCost(this IDictionary<BlockType, int> resources, Costs costs) => 
+            resources.Sum(kv => kv.Value * costs.ResourceWeight[kv.Key]);
 
         /// <summary>
         /// Return a new empty resources dictionary

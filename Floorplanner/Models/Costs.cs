@@ -14,7 +14,7 @@ namespace Floorplanner.Models
 
         public IReadOnlyDictionary<BlockType, int> ResourceWeight { get; private set; }
 
-        public Costs(int maxScore, int areaWeight, int wireWeight, int clb, int dsp, int bram)
+        public Costs(int maxScore, int areaWeight, int wireWeight, int clb, int bram, int dsp)
         {
             MaxScore = maxScore;
             AreaWeight = areaWeight;

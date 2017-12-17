@@ -10,9 +10,14 @@ namespace Floorplanner.Solver.Reducers
     {
         private readonly IAreaReducer _backupReducer;
 
-        private Func<Area, Costs, int> _costFunction = (Area a, Costs c) => 
-            /*(a.TileRows.Count() - 1) * 1000000 +*/ c.AreaWeight != 0 ? a.GetCost(c) 
-                : a.GetCost(new Costs(c.MaxScore, c.WireWeight, c.WireWeight, 1, 1, 1));
+        private Func<Area, Costs, int> _costFunction = (Area a, Costs c) =>
+        {
+            if (c.AreaWeight == 0)
+                c = c.ToNonZero();
+
+            return /*(a.TileRows.Count() - 1) * 1000000 +*/ a.GetCost(c) 
+                + a.Resources.Merge(a.Region.Resources, FPHelper.sub).GetCost(c);
+        };
 
         /// <summary>
         /// Predefined cost function take into account how many tile rows are
@@ -46,19 +51,29 @@ namespace Floorplanner.Solver.Reducers
 
             // Get center tile row number
             int centerTRow = (int)idealCenter.Y / tileHeight;
-
             
-            // If the area isn't only on one tile row shrink it there
-            // or as close as possible taking steps of complete tiles
-            if (area.Height + 1 > tileHeight)
-                TileGrainHeightShrink(area, centerTRow, tileHeight);
+            IEnumerable<Area> areas = TileGrainHeightShrink(area, centerTRow, tileHeight);
 
-            Direction shrinkDir = area.Center.X > idealCenter.X
+            foreach(Area a in areas)
+            {
+                Direction shrinkDir = a.Center.X > idealCenter.X
                 ? Direction.Right : Direction.Left;
 
-            ShrinkWidthOn(shrinkDir, area);
+                ShrinkWidthOn(shrinkDir, a);
 
-            ShrinkWidthOn(shrinkDir.Opposite(), area);
+                ShrinkWidthOn(shrinkDir.Opposite(), a);
+
+                ShrinkHeight(a, tileHeight);
+            }
+
+            Costs c = floorPlan.Design.Costs.ToNonZero();
+
+            Area bestArea = areas
+                .Aggregate((a1, a2) => CostFunction(a1, c) < CostFunction(a2, c) ? a1 : a2);
+
+            area.Width = bestArea.Width;
+            area.Height = bestArea.Height;
+            area.MoveTo(bestArea.TopLeft);
         }
 
         /// <summary>
@@ -68,22 +83,40 @@ namespace Floorplanner.Solver.Reducers
         /// <param name="area">Area to reduce. (Must be taller than a tile height)</param>
         /// <param name="centerTRow">Idel center tile row number.</param>
         /// <param name="tileHeight">FPGA tile height value.</param>
-        private void TileGrainHeightShrink(Area area, int centerTRow, int tileHeight)
+        private IEnumerable<Area> TileGrainHeightShrink(Area area, int centerTRow, int tileHeight)
         {
             if (area.Height + 1 <= tileHeight)
-                throw new Exception("Only areas taller than a tile height are valid here.");
+                return new Area[] { area };
 
             // Get current max and min tile rows numbers covered by the area
             IEnumerable<int> expandedTRows = area.TileRows;
             int minTRow = expandedTRows.Min();
             int maxTRow = expandedTRows.Max();
+            int oldMinTRow = minTRow;
+            int oldMaxTRow = maxTRow;
 
-            // Calculate shrink direction based on center tile row position
-            Direction shrinkDir = minTRow >= centerTRow
-                    ? Direction.Down : Direction.Up;
+            IList<Area> areas = new List<Area>();
+            areas.Add(new Area(area));
+            Direction shrinkDir;
 
             do
             {
+                if (oldMinTRow != minTRow)
+                {
+                    oldMinTRow = minTRow;
+                    areas.Add(new Area(area));
+                }
+
+                if (oldMaxTRow != maxTRow)
+                {
+                    oldMaxTRow = maxTRow;
+                    areas.Add(new Area(area));
+                }
+
+                // Calculate shrink direction based on center tile row position
+                shrinkDir = minTRow >= centerTRow
+                        ? Direction.Down : Direction.Up;
+
                 // If can't shrink here there is something wrong
                 // because the loop has to exit when minimum height is that of
                 // a tile and if we are here it should have been more
@@ -98,18 +131,10 @@ namespace Floorplanner.Solver.Reducers
 
             } while (area.IsSufficient && minTRow < maxTRow);
 
-            // If the loop stopped because the area isn't sufficient
-            // any more expand it back to occupy a full tile height
-            // in opposite shrinking direction
-            if (!area.IsSufficient)
-            {
-                shrinkDir = shrinkDir.Opposite();
+            if (area.IsSufficient)
+                areas.Add(area);
 
-                do
-                {
-                    area.TryShape(Models.Solver.Action.Expand, shrinkDir);
-                } while ((area.Height + 1) % tileHeight == 0);
-            }
+            return areas;
         }
 
         /// <summary>
@@ -128,12 +153,42 @@ namespace Floorplanner.Solver.Reducers
                 if (!area.TryShape(Models.Solver.Action.Shrink, shrinkDir))
                     break;
 
-            shrinkDir = shrinkDir.Opposite();
-
             // Bring area back to valid and sufficient dimension after shrinking
             while (!area.IsSufficient || !area.IsValid)
                 if (!area.TryShape(Models.Solver.Action.Expand, shrinkDir))
                     break;
+        }
+
+        /// <summary>
+        /// Shrink area height as much as possible positioning it to occupy less
+        /// tile rows as possible
+        /// </summary>
+        /// <param name="area">Area to shrink.</param>
+        /// <param name="tileHeight">Tile height.</param>
+        private void ShrinkHeight(Area area, int tileHeight)
+        {
+            int startY = (int)area.TopLeft.Y;
+            int endY = startY + area.Height;
+
+            do
+            {
+                if (!area.TryShape(Models.Solver.Action.Shrink, Direction.Down))
+                    break;
+            } while (area.IsSufficient);
+
+
+            if (!area.IsSufficient)
+                area.TryShape(Models.Solver.Action.Expand, Direction.Down);
+
+            if (area.Height == endY - startY)
+                return;
+
+            int topOverflow = tileHeight - startY % tileHeight;
+            int bottomOverflow = endY % tileHeight;
+            int shrinkHeight = endY - startY - area.Height;
+
+            if (topOverflow <= shrinkHeight)
+                area.MoveTo(new Point(area.TopLeft.X, startY + topOverflow));
         }
     }
 }
