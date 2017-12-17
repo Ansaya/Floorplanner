@@ -79,12 +79,14 @@ namespace Floorplanner.Models.Solver
 
             foreach (Area a in Areas.Where(a => a.IsConfirmed))
                 foreach (Point p in a.Points)
-                    currentDesign[(int)p.Y, (int)p.X] = a.Type;
+                    currentDesign[(int)p.Y, (int)p.X] = IsBorder(p.X, p.Y, a) ? (RegionType)((int)a.Type + 1) : a.Type;
 
             IDictionary<RegionType, ConsoleColor> color = new Dictionary<RegionType, ConsoleColor>()
             {
-                { RegionType.Static, ConsoleColor.Green },
-                { RegionType.Reconfigurable, ConsoleColor.Magenta },
+                { RegionType.Static, ConsoleColor.DarkGreen },
+                { RegionType.StaticBorder, ConsoleColor.Green },
+                { RegionType.Reconfigurable, ConsoleColor.DarkMagenta },
+                { RegionType.ReconfigurableBorder, ConsoleColor.Magenta },
                 { RegionType.None, ConsoleColor.Gray }
             };
             
@@ -104,6 +106,12 @@ namespace Floorplanner.Models.Solver
             }
 
             Console.ResetColor();
+        }
+
+        private bool IsBorder(double x, double y, Area a)
+        {
+            return x == a.TopLeft.X || x == a.TopLeft.X + a.Width
+                || y == a.TopLeft.Y || y == a.TopLeft.Y + a.Height;
         }
 
         public int Compare(Area x, Area y) => Design.Compare(x.Region, y.Region);
