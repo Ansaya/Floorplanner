@@ -15,8 +15,8 @@ namespace Floorplanner.Solver.Reducers
             if (c.AreaWeight == 0)
                 c = c.ToNonZero();
 
-            return /*(a.TileRows.Count() - 1) * 1000000 +*/ a.GetCost(c) 
-                + a.Resources.Merge(a.Region.Resources, FPHelper.sub).GetCost(c);
+            return /*(a.TileRows.Count() - 1) * 1000000 +*/ a.GetCost(c);
+                //+ a.Resources.Merge(a.Region.Resources, FPHelper.sub).GetCost(c);
         };
 
         /// <summary>

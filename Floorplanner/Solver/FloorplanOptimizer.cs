@@ -246,7 +246,7 @@ namespace Floorplanner.Solver
 
                         Thread.Sleep(500);
                     }
-                }, cts.Token, cts.Token);
+                }, cts.Token);
 
                 // Wait for any of the launched optimization tasks and 
                 // check if result is better of current floorplan
