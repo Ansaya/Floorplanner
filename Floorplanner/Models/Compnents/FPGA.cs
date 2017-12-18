@@ -41,7 +41,7 @@ namespace Floorplanner.Models.Components
 
         public double CLBratioDSP { get; private set; }
 
-        public IDictionary<BlockType, int> Resources { get => _resourcesFromOrigin[Xmax, Ymax]; }
+        public IDictionary<BlockType, int> Resources { get => _resourcesFromOrigin[Xmax + 1, Ymax + 1]; }
         
         private IEnumerable<Point> _validPoints;
 

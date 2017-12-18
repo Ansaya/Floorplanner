@@ -58,7 +58,7 @@ namespace Floorplanner.Models
             int rbrams = design.Regions.Sum(r => r.Resources[BlockType.BRAM]);
             int rdsps = design.Regions.Sum(r => r.Resources[BlockType.DSP]);
 
-            double resRatio = (double)(rclbs + rbrams + rdsps) / (clbs + brams + clbs);
+            double resRatio = (double)(rclbs + rbrams + rdsps) / (clbs + brams + dsps);
 
             design._isFeasible = clbs >= rclbs && brams >= rbrams && dsps >= rdsps;
 

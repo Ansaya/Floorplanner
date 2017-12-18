@@ -65,6 +65,28 @@ namespace Floorplanner.Test.Models.Components
             Assert.AreEqual(5, areaRes[BlockType.DSP]);
             Assert.AreEqual(0, areaRes[BlockType.Forbidden]);
             Assert.AreEqual(0, areaRes[BlockType.Null]);
+
+            area.MoveTo(new Point(26, 5));
+
+            areaRes = fpga.ResourcesFor(area);
+
+            Assert.AreEqual(20, areaRes[BlockType.CLB]);
+            Assert.AreEqual(0, areaRes[BlockType.BRAM]);
+            Assert.AreEqual(0, areaRes[BlockType.DSP]);
+            Assert.AreEqual(0, areaRes[BlockType.Forbidden]);
+            Assert.AreEqual(5, areaRes[BlockType.Null]);
+        }
+
+        [TestMethod]
+        public void Resources()
+        {
+            IDictionary<BlockType, int> fpgaRes = fpga.Resources;
+
+            Assert.AreEqual(220, fpgaRes[BlockType.CLB]);
+            Assert.AreEqual(30, fpgaRes[BlockType.BRAM]);
+            Assert.AreEqual(20, fpgaRes[BlockType.DSP]);
+            Assert.AreEqual(40, fpgaRes[BlockType.Null]);
+            Assert.AreEqual(0, fpgaRes[BlockType.Forbidden]);
         }
 
         [TestMethod]
