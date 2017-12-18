@@ -34,7 +34,9 @@ namespace Floorplanner.Solver.Reducers
             }
         }
 
-        public PRAreaReducer(IAreaReducer bacukpReducer)
+        public bool BackupEnabled { get => _backupReducer != null; }
+
+        public PRAreaReducer(IAreaReducer bacukpReducer = null)
         {
             _backupReducer = bacukpReducer;
         }
@@ -49,7 +51,7 @@ namespace Floorplanner.Solver.Reducers
 
         public void Reduce(Area area, Point idealCenter, Floorplan floorPlan)
         {
-            if(area.Type == RegionType.Static)
+            if(area.Type == RegionType.Static && BackupEnabled)
             {
                 _backupReducer.Reduce(area, idealCenter, floorPlan);
                 return;
