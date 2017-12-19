@@ -150,11 +150,8 @@ namespace Floorplanner.Models.Solver
         /// <returns>True if no overlap is found, false if given area overlaps with another.</returns>
         public bool CanPlace(Area a)
         {
-            IEnumerable<Area> confirmedAreas = Areas.Where(ar => ar.IsConfirmed);
-
             return a.Resources[BlockType.Forbidden] == 0 
-                && !(confirmedAreas.Any()
-                && confirmedAreas.Select(a.IsOverlapping).Aggregate((o1, o2) => o1 || o2));
+                && !Areas.Any(ar => ar.IsConfirmed && a.IsOverlapping(ar));
         }
     }
 }

@@ -54,21 +54,11 @@ namespace Floorplanner
             };
         }
 
-        public static readonly Func<int, int, int> add = (a, b) => a + b;
+        public static IDictionary<K, int> Sum<K>(this IDictionary<K, int> dict, IDictionary<K, int> other)
+            => dict.ToDictionary(kv => kv.Key, kv => kv.Value + other[kv.Key]);
 
-        public static readonly Func<int, int, int> sub = (a, b) => a - b;
-
-        public static IDictionary<K, V> Merge<K, V>(
-            this IDictionary<K, V> dict, 
-            IDictionary<K, V> other, 
-            Func<V, V, V> valueMerger) =>
-            dict.Concat(other)
-                .GroupBy(kv => kv.Key)
-                .ToDictionary(
-                    kvGroup => kvGroup.Key, 
-                    kvGroup => kvGroup
-                        .Select(kv => kv.Value)
-                        .Aggregate(valueMerger));
+        public static IDictionary<K, int> Sub<K>(this IDictionary<K, int> dict, IDictionary<K, int> other)
+            => dict.ToDictionary(kv => kv.Key, kv => kv.Value - other[kv.Key]);
 
         public static bool IsAdjacent(this Area x, Area y)
         {
@@ -78,8 +68,8 @@ namespace Floorplanner
             bool leftrightAdj = (x.Width + y.Width) / 2d == xDiff;
             bool updownAdj = (x.Height + y.Height) / 2d == yDiff;
 
-            return leftrightAdj && yDiff <= 1
-                || updownAdj && xDiff <= 1;
+            return leftrightAdj && yDiff == 0
+                || updownAdj && xDiff == 0;
         }
 
         public static Direction Opposite(this Direction direction)

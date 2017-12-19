@@ -57,7 +57,12 @@ namespace Floorplanner.Models.Solver
                 int startTile = (int)TopLeft.Y / FPGA.TileHeight;
                 int endTile = ((int)TopLeft.Y + Height) / FPGA.TileHeight;
 
-                return Enumerable.Range(startTile, endTile - startTile + 1).ToArray();
+                int[] tRows = new int[endTile - startTile + 1];
+
+                for (int i = 0; i < tRows.Length; i++)
+                    tRows[i] = startTile++;
+
+                return tRows;
             }
         }
 
@@ -265,7 +270,7 @@ namespace Floorplanner.Models.Solver
             IEnumerable<int> thisTiles = TileRows;
             IEnumerable<int> otherTiles = other.TileRows;
 
-            bool sameTileRow = thisTiles.Intersect(otherTiles).Any();
+            bool sameTileRow = thisTiles.Any(otherTiles.Contains);
 
             if (!sameTileRow) return false;
 

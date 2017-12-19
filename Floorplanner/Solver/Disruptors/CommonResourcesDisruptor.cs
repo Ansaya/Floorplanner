@@ -42,7 +42,7 @@ namespace Floorplanner.Solver.Disruptors
             {
                 Area current = confirmed[j];
 
-                if (current.Resources.Merge(region.Resources, FPHelper.sub).Any(rv => rv.Value < 0))
+                if (current.Resources.Any(rv => rv.Value < region.Resources[rv.Key]))
                     smaller.Add(current);
                 else
                     bigger.Add(current);
@@ -75,8 +75,8 @@ namespace Floorplanner.Solver.Disruptors
                 {
                     Area aj = disruptable[j];
 
-                    if (ai.IsAdjacent(aj) && ai.Resources.Merge(aj.Resources, FPHelper.add)
-                        .All(rv => rv.Value >= _st.ResourceDisruptThreshold))
+                    if (ai.IsAdjacent(aj) && !ai.Resources
+                        .Any(rv => rv.Value + aj.Resources[rv.Key] < _st.ResourceDisruptThreshold))
                     {
                         ai.Disrupt(unconfirmed);
                         aj.Disrupt(unconfirmed);

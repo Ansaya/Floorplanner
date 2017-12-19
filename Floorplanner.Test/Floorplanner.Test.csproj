@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DesignFactory.cs" />
+    <Compile Include="FPHelperTest.cs" />
     <Compile Include="Models\Components\FPGATest.cs" />
     <Compile Include="Models\Solver\AreaTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

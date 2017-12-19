@@ -86,6 +86,12 @@ namespace Floorplanner.Solver
             // Place and disrupt areas until they are all placed in some position
             while (unconfirmed.Count > 0 && !ct.IsCancellationRequested)
             {
+                unconfirmed = unconfirmed
+                    .OrderByDescending(a => a.Region.Resources[BlockType.DSP])
+                    .ThenByDescending(a => a.Region.Resources[BlockType.BRAM])
+                    .ThenByDescending(a => a.Region.Resources[BlockType.CLB])
+                    .ToList();
+
                 // Try position each unconfirmed area
                 for (int i = 0; i < unconfirmed.Count && !ct.IsCancellationRequested; )
                 {

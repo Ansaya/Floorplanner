@@ -104,8 +104,8 @@ namespace Floorplanner.Models.Components
                             resFromOrigin[1, r + 1] = new Dictionary<BlockType, int>(resFromOrigin[1, r]);
                         else
                             resFromOrigin[c + 1, r + 1] = resFromOrigin[c, r + 1]
-                                .Merge(resFromOrigin[c + 1, r], FPHelper.add)
-                                .Merge(resFromOrigin[c, r], FPHelper.sub);
+                                .Sum(resFromOrigin[c + 1, r])
+                                .Sub(resFromOrigin[c, r]);
                     }
 
                     resFromOrigin[c + 1, r + 1][bt]++;
@@ -147,9 +147,9 @@ namespace Floorplanner.Models.Components
             int endY = startY + a.Height + 1;
 
             return _resourcesFromOrigin[startX, startY]
-                .Merge(_resourcesFromOrigin[endX, endY], FPHelper.add)
-                .Merge(_resourcesFromOrigin[endX, startY], FPHelper.sub)
-                .Merge(_resourcesFromOrigin[startX, endY], FPHelper.sub);
+                .Sum(_resourcesFromOrigin[endX, endY])
+                .Sub(_resourcesFromOrigin[endX, startY])
+                .Sub(_resourcesFromOrigin[startX, endY]);
         }
 
         public bool Contains(Area a)
