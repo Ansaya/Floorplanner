@@ -2,6 +2,7 @@
 using Floorplanner.Solver.Reducers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Floorplanner.Solver.Placers
@@ -128,6 +129,7 @@ namespace Floorplanner.Solver.Placers
         /// <param name="y">Y constant value to use.</param>
         /// <param name="inDistance">Distance to put in between subsequent points.(Last point could be nearer to previous than this)</param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerable<Point> GetHorizontalAnchors(double left, double right, double y, int inDistance = 5)
         {
             double width = right - left;

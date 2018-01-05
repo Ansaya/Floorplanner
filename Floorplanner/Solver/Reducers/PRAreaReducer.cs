@@ -3,6 +3,7 @@ using Floorplanner.Models.Solver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Floorplanner.Solver.Reducers
 {
@@ -88,6 +89,7 @@ namespace Floorplanner.Solver.Reducers
         /// <param name="area">Area to reduce. (Must be taller than a tile height)</param>
         /// <param name="centerTRow">Idel center tile row number.</param>
         /// <param name="tileHeight">FPGA tile height value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerable<Area> TileGrainHeightShrink(Area area, int centerTRow, int tileHeight)
         {
             if (area.Height + 1 <= tileHeight)
@@ -136,8 +138,7 @@ namespace Floorplanner.Solver.Reducers
 
             } while (area.IsSufficient && minTRow < maxTRow);
 
-            if (area.IsSufficient)
-                areas.Add(area);
+            if (area.IsSufficient) areas.Add(area);
 
             return areas;
         }
@@ -148,6 +149,7 @@ namespace Floorplanner.Solver.Reducers
         /// </summary>
         /// <param name="shrinkDir">Direction to shrink from. (Must be left or right)</param>
         /// <param name="area">Area to shrink.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ShrinkWidthOn(Direction shrinkDir, Area area)
         {
             if ((int)shrinkDir % 2 == 0)
@@ -170,6 +172,7 @@ namespace Floorplanner.Solver.Reducers
         /// </summary>
         /// <param name="area">Area to shrink.</param>
         /// <param name="tileHeight">Tile height.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ShrinkHeight(Area area, int tileHeight)
         {
             int startY = (int)area.TopLeft.Y;

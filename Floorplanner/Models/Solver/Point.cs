@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Floorplanner.Models.Solver
 {
@@ -25,9 +26,13 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         /// <param name="other">Other point to calculate distance from</param>
         /// <returns>Distance between the two points</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public double DistanceFrom(Point other)
         {
-            return Math.Sqrt(Math.Pow(X - other.X, 2) + Math.Pow(Y - other.Y, 2));
+            double xDiff = X - other.X;
+            double yDiff = Y - other.Y;
+
+            return xDiff * xDiff + yDiff * yDiff;
         }
 
         /// <summary>
@@ -35,9 +40,15 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         /// <param name="other">Other point to calculate distance from</param>
         /// <returns>Distance between the two points</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public double ManhattanFrom(Point other)
         {
-            return Math.Abs(X - other.X) + Math.Abs(Y - other.Y);
+            double xDiff = X - other.X;
+            if (xDiff < 0) xDiff = -xDiff;
+            double yDiff = Y - other.Y;
+            if (yDiff < 0) yDiff = -yDiff;
+
+            return xDiff + yDiff;
         }
 
         public void Move(Direction direction, double step)

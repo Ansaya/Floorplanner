@@ -34,37 +34,31 @@ namespace Floorplanner
                 new ArgOption("|outdir", "Output files directory", path => _outputDir = path, true),
                 new ArgOption("o|output", "Output file path", path => _outputFile = path, true),
                 new ArgOption("|iterations", "Optimization iterations after a generic solution has been found.", it => {
-                    int iterations;
-                    if (int.TryParse(it, out iterations))
+                    if (int.TryParse(it, out int iterations))
                         _opt.MaxOptIteration = iterations;
                 }, true),
                 new ArgOption("|disruptions", "Disruptions before failing generic plan search." +
                     "After generic plan has been found each optimization iteration will admit half disruptions " +
                     "before failing.", ds => {
-                    int disruptuions;
-                    if (int.TryParse(ds, out disruptuions))
-                        _opt.MaxDisruption = disruptuions;
-                }, true),
+                        if (int.TryParse(ds, out int disruptuions))
+                            _opt.MaxDisruption = disruptuions;
+                    }, true),
                 new ArgOption("|dresthres", "Exceeding resource needed by two areas to be removed to place a new one" +
                     "during disruption process. (Can be a negative value)", drt => {
-                    int dresthres;
-                    if (int.TryParse(drt, out dresthres))
-                        _opt.ResourceDisruptThreshold = dresthres;
-                }, true),
+                        if (int.TryParse(drt, out int dresthres))
+                            _opt.ResourceDisruptThreshold = dresthres;
+                    }, true),
                 new ArgOption("|caosfactor", "How many areas to disrupt in one time", ds => {
-                    int disruptuions;
-                    if (int.TryParse(ds, out disruptuions))
+                    if (int.TryParse(ds, out int disruptuions))
                         _opt.CaosFactor = disruptuions;
                 }, true),
                 new ArgOption("|maxconcurrent", "How many concurrent optimizers can be instanciated.", mc => {
-                    int maxConcurrent = 0;
-                    if (int.TryParse(mc, out maxConcurrent) && maxConcurrent > 0)
+                    if (int.TryParse(mc, out int maxConcurrent) && maxConcurrent > 0)
                         _opt.MaxConcurrent = maxConcurrent;
                 }, true),
                 new ArgOption("|minDimension", "Minimum region thickness for every region to be considered during placement.", md =>
                 {
-                    int minDimension = 1;
-                    if (int.TryParse(md, out minDimension) && minDimension >= 1)
+                    if (int.TryParse(md, out int minDimension) && minDimension >= 1)
                         _opt.MinDimension = minDimension;
                 }, true));
 

@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Floorplanner.Solver.Placers
 {
-    public class NearestPointEnumerator : IEnumerator<Point>
+    public sealed class NearestPointEnumerator : IEnumerator<Point>
     {
 
         private IList<Point> _sortedPoints;

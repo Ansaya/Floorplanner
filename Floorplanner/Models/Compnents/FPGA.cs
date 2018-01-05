@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Floorplanner.Models.Components
 {
@@ -180,6 +181,7 @@ namespace Floorplanner.Models.Components
                 .Sub(_resourcesFromOrigin[startX, endY]);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(Area a)
         {
             return 0 <= a.TopLeft.X && a.TopLeft.X + a.Width <= Xmax

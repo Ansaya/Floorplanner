@@ -2,12 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Floorplanner.Models.Solver
 {
     public class Area
     {
-        public int ID { get => Region.ID; }
+        public int ID {
+            get => Region.ID;
+        }
 
         public bool IsConfirmed { get; set; } = false;
 
@@ -21,7 +24,9 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         public Region Region { get; private set; }
 
-        public RegionType Type { get => Region.Type; }
+        public RegionType Type {
+            get => Region.Type;
+        }
 
         public Point TopLeft { get; private set; } = new Point(0, 0);
 
@@ -40,10 +45,8 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         public Point Center
         {
-            get
-            {
-                return new Point(TopLeft.X + (double)Width / 2, TopLeft.Y + (double)Height / 2);
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => new Point(TopLeft.X + (double)Width / 2, TopLeft.Y + (double)Height / 2);
         }
 
         /// <summary>
@@ -52,6 +55,7 @@ namespace Floorplanner.Models.Solver
         /// <returns>Covered tiles' row number.</returns>
         public IEnumerable<int> TileRows
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 int startTile = (int)TopLeft.Y / FPGA.TileHeight;
@@ -69,7 +73,10 @@ namespace Floorplanner.Models.Solver
         /// <summary>
         /// Area surface in blocks.
         /// </summary>
-        public int Value { get =>  (Width + 1) * (Height + 1); }
+        public int Value {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get =>  (Width + 1) * (Height + 1);
+        }
 
         /// <summary>
         /// Resources covered by this area on the fpga.
@@ -181,6 +188,7 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         /// <param name="topLeft">Top left point to move the area to.</param>
         /// <exception cref="ArgumentOutOfRangeException">If the given point place the area or part of it out of FPGA bounds.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MoveTo(Point topLeft)
         {
             if (!TryMoveTo(topLeft))
@@ -194,6 +202,7 @@ namespace Floorplanner.Models.Solver
         /// </summary>
         /// <param name="topLeft">Top left point to move the area to.</param>
         /// <returns>True if moved the area successfuccly, false else.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryMoveTo(Point topLeft)
         {
             Point oldTopLeft = TopLeft;
@@ -213,6 +222,7 @@ namespace Floorplanner.Models.Solver
         /// <param name="direction">Edge to be moved.</param>
         /// <param name="steps">Moving steps from current edge position.</param>
         /// <returns>True if the action was succesfull, false if FPGA bounds have been reached.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryShape(Action action, Direction direction, int steps = 1)
         {
             Point topLeft = new Point(TopLeft);
@@ -320,6 +330,7 @@ namespace Floorplanner.Models.Solver
                 || updownAdj && xDiff == 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(Point p)
         {
             return TopLeft.X <= p.X && p.X <= TopLeft.X + Width

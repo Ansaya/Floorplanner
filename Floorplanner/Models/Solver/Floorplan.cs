@@ -81,8 +81,10 @@ namespace Floorplanner.Models.Solver
         /// <returns>Partial cost value.</returns>
         public int GetPartialCostWith(Area unconfirmed)
         {
-            IList<Area> confirmed = new List<Area>(Areas.Where(a => a.IsConfirmed));
-            confirmed.Add(unconfirmed);
+            IList<Area> confirmed = new List<Area>(Areas.Where(a => a.IsConfirmed))
+            {
+                unconfirmed
+            };
 
             return GetCostFor(confirmed);
         }
@@ -107,8 +109,10 @@ namespace Floorplanner.Models.Solver
         /// <returns>Partial maximum wirelength value.</returns>
         public int GetPartialMaxWirelengthWith(Area unconfirmed)
         {
-            IList<Area> confirmed = new List<Area>(Areas.Where(a => a.IsConfirmed));
-            confirmed.Add(unconfirmed);
+            IList<Area> confirmed = new List<Area>(Areas.Where(a => a.IsConfirmed))
+            {
+                unconfirmed
+            };
 
             return (int)GetMaxWireLengthFor(confirmed);
         }
