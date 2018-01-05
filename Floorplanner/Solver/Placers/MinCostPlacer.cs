@@ -17,7 +17,7 @@ namespace Floorplanner.Solver.Placers
 
         public void PlaceArea(Area area, Floorplan floorPlan, Point idealCenter)
         {
-            IList<Point> availablePoints = new List<Point>(floorPlan.FreePoints);
+            IList<Point> availablePoints = floorPlan.FreePoints.ToList();
 
             IList<Task<ReducerInfo>> areaReducers = new List<Task<ReducerInfo>>();
 
@@ -40,31 +40,17 @@ namespace Floorplanner.Solver.Placers
                 if (!PlacerHelper.TryValidatePR(freeArea) || !freeArea.IsSufficient)
                     continue;
 
-                // If current area is eligible launch some reducing tasks
-                Point[] areaMainP = new Point[]
+                // If current area is eligible define some base points to reduce throw
+                IEnumerable<Point> horizontalAnchors = 
+                    GetHorizontalAnchors(freeArea.TopLeft.X, freeArea.TopLeft.X + freeArea.Width, freeArea.TopLeft.Y);
+
+                // Reduce the area throw each of calculated points
+                foreach (Point ha in horizontalAnchors)
                 {
-                    new Point(freeArea.TopLeft),
-                    new Point(freeArea.TopLeft.X + freeArea.Width, freeArea.TopLeft.Y),
-                    new Point(freeArea.TopLeft.X, freeArea.TopLeft.Y + freeArea.Height),
-                    new Point(freeArea.TopLeft.X + freeArea.Width, freeArea.TopLeft.Y + freeArea.Height),
-                    new Point(freeArea.Center)
-                };
-
-                foreach(Point p in areaMainP)
-                {
-                    areaReducers.Add(Task.Factory.StartNew(info =>
-                    {
-                        ReducerInfo ri = (ReducerInfo)info;
-
-                        _areaReducer.Reduce(ri.Area, ri.Center, ri.Floorplan);
-
-                        ri.Cost = _areaReducer.CostFunction(ri.Area, ri.Floorplan.Design.Costs);
-
-                        return ri;
-                    }, new ReducerInfo()
+                    areaReducers.Add(Task.Factory.StartNew(TopBottomReduce, new ReducerInfo()
                     {
                         Area = new Area(freeArea),
-                        Center = p,
+                        TopCenter = ha,
                         Floorplan = floorPlan
                     }));
                 }
@@ -89,13 +75,76 @@ namespace Floorplanner.Solver.Placers
             area.MoveTo(bestFound.TopLeft);
         }
 
+        /// <summary>
+        /// Reduce given area throw specified top center point then checks the same area placed 
+        /// at the bottom of starting expanded area for a better cost and return less costly result.
+        /// </summary>
+        /// <param name="reducerInfo">Reducer info containing expanded area, related floorplan and top center point.
+        /// After computation Area will be the reduced area and Cost the relative area cost computed with
+        /// reducer CostFunction.</param>
+        /// <returns>Best reduced area and cost.</returns>
+        private ReducerInfo TopBottomReduce(object reducerInfo)
+        {
+            ReducerInfo ri = (ReducerInfo)reducerInfo;
+
+            // Store area bottom for later
+            int bottomY = (int)ri.Area.TopLeft.Y + ri.Area.Height;
+
+            _areaReducer.Reduce(ri.Area, ri.TopCenter, ri.Floorplan);
+
+            Area topA = ri.Area;
+
+            // Move reduced area to the bottom of starting expanded area
+            Area bottomA = new Area(ri.Area);
+            bottomA.MoveTo(new Point(topA.TopLeft.X, bottomY - topA.Height)); // If exception thrown here there is a formal error in the code (not tested yet)
+
+            // Check cost of top and bottom area and chose the best
+            int topACost = _areaReducer.CostFunction(topA, ri.Floorplan);
+            int bottomACost = _areaReducer.CostFunction(bottomA, ri.Floorplan);
+
+            // If reduced area moved to the bottom cost less take it
+            if (bottomACost < topACost)
+            {
+                ri.Area = bottomA;
+                ri.Cost = bottomACost;
+            }
+            else
+                ri.Cost = topACost;
+
+            return ri;
+        }
+
+        /// <summary>
+        /// Split given width in segments as long as inDistance value and returns the list of points
+        /// </summary>
+        /// <param name="left">Leftmost x value.</param>
+        /// <param name="right">Rightmost x value.</param>
+        /// <param name="y">Y constant value to use.</param>
+        /// <param name="inDistance">Distance to put in between subsequent points.(Last point could be nearer to previous than this)</param>
+        /// <returns></returns>
+        private IEnumerable<Point> GetHorizontalAnchors(double left, double right, double y, int inDistance = 5)
+        {
+            double width = right - left;
+
+            yield return new Point(left, y);
+
+            if (width > inDistance * 2)
+                for(int i = (int)(width / inDistance); i > 0; i--)
+                {
+                    left += inDistance;
+                    yield return new Point(left, y);
+                }
+
+            yield return new Point(right, y);
+        }
+
         private class ReducerInfo
         {
             public Area Area { get; set; }
 
             public int Cost { get; set; }
 
-            public Point Center { get; set; }
+            public Point TopCenter { get; set; }
 
             public Floorplan Floorplan { get; set; }
         }

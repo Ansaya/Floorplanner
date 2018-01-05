@@ -1,5 +1,4 @@
-﻿using Floorplanner.Models;
-using Floorplanner.Models.Solver;
+﻿using Floorplanner.Models.Solver;
 using System;
 
 namespace Floorplanner.Solver.Reducers
@@ -11,7 +10,7 @@ namespace Floorplanner.Solver.Reducers
         /// <summary>
         /// Function used to calculate area cost
         /// </summary>
-        Func<Area, Costs, int> CostFunction { get; set; }
+        Func<Area, Floorplan, int> CostFunction { get; set; }
 
         /// <summary>
         /// Reduces a given area as much as possible calculating cost with CostFunction.

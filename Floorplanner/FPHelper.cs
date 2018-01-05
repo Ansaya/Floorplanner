@@ -11,15 +11,19 @@ namespace Floorplanner
     {
         public readonly static char _separator = char.Parse(" ");
 
+        public static readonly long MagicLongSeed = -5315112344061764177;
+
+        public static readonly int MagicIntSeed = 689465938;
+
         /// <summary>
         /// Shuffles the element order of the specified list.
         /// </summary>
-        public static void Shuffle<T>(this IList<T> ts)
+        public static void Shuffle<T>(this IList<T> ts, int seed)
         {
             var count = ts.Count;
             var last = count - 1;
 
-            Random rnd = new Random();
+            Random rnd = new Random(seed);
 
             for (var i = 0; i < last; ++i)
             {
@@ -59,18 +63,6 @@ namespace Floorplanner
 
         public static IDictionary<K, int> Sub<K>(this IDictionary<K, int> dict, IDictionary<K, int> other)
             => dict.ToDictionary(kv => kv.Key, kv => kv.Value - other[kv.Key]);
-
-        public static bool IsAdjacent(this Area x, Area y)
-        {
-            double xDiff = Math.Abs(x.Center.X - y.Center.X);
-            double yDiff = Math.Abs(x.Center.Y - y.Center.Y);
-
-            bool leftrightAdj = (x.Width + y.Width) / 2d == xDiff;
-            bool updownAdj = (x.Height + y.Height) / 2d == yDiff;
-
-            return leftrightAdj && yDiff == 0
-                || updownAdj && xDiff == 0;
-        }
 
         public static Direction Opposite(this Direction direction)
         {

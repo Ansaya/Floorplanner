@@ -45,5 +45,29 @@ namespace Floorplanner.Models
 
             return region;
         }
+
+        public override bool Equals(object obj)
+        {
+            var region = obj as Region;
+            return region != null &&
+                   ID == region.ID;
+        }
+
+        public override int GetHashCode()
+        {
+            return 1213502048 + ID.GetHashCode();
+        }
+
+        /// <summary>
+        /// Print specified region information to given text writer.
+        /// </summary>
+        /// <param name="tw">Text writer to print to.</param>
+        public void PrintInfoTo(TextWriter tw)
+        {
+            tw.WriteLine($"Region {ID} - {Resources[BlockType.CLB]} CLB" +
+                                    $"  {Resources[BlockType.BRAM]} BRAM" +
+                                    $"  {Resources[BlockType.DSP]} DSP" +
+                                    $"  ({Type.ToString()})");
+        }
     }
 }

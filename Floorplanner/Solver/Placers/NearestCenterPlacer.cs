@@ -62,7 +62,7 @@ namespace Floorplanner.Solver.Placers
                     })
                     .AsSequential()
                     .Aggregate((a1, a2) => 
-                        _areaReducer.CostFunction(a1, floorPlan.Design.Costs) < _areaReducer.CostFunction(a2, floorPlan.Design.Costs) 
+                        _areaReducer.CostFunction(a1, floorPlan) < _areaReducer.CostFunction(a2, floorPlan) 
                         ? a1 : a2);
 
                 area.Width = bestArea.Width;

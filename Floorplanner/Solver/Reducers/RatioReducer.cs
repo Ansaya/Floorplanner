@@ -1,5 +1,4 @@
-﻿using Floorplanner.Models;
-using Floorplanner.Models.Components;
+﻿using Floorplanner.Models.Components;
 using Floorplanner.Models.Solver;
 using System;
 using System.Collections.Generic;
@@ -17,16 +16,9 @@ namespace Floorplanner.Solver.Reducers
         private readonly int _rBRAMThres;
 
         private readonly int _rDSPThres;
-
-        /// <summary>
-        /// Scoring function for areas
-        /// </summary>
-        /// <param name="a">Area to score.</param>
-        /// <param name="c">Costs values container.</param>
-        /// <returns>Area total score.</returns>
-        public Func<Area, Costs, int> CostFunction { get; set; } = 
-            (Area a, Costs c) => c.AreaWeight != 0 ? a.GetCost(c)
-                : a.GetCost(c.ToNonZero());
+        
+        public Func<Area, Floorplan, int> CostFunction { get; set; } = 
+            (Area a, Floorplan f) => a.GetCost(f.Design.Costs.ToNonZero());
 
         public RatioAreaReducer(double arBRAMratio, double arDSPratio, int rBRAMThres = 3, int rDSPThres = 3)
         {
@@ -121,7 +113,7 @@ namespace Floorplanner.Solver.Reducers
                 // If wanted direction has already been explored chose opposite one
                 if (exploredShrinkDir[shrinkDir]) shrinkDir = shrinkDir.Opposite();
 
-                // NOTE: at this point a valid direction is there for shure, else the loop
+                // NOTE: at this point a valid direction is there for sure, else the loop
                 //       would have exited
 
                 do
@@ -154,7 +146,7 @@ namespace Floorplanner.Solver.Reducers
 
             } while (exploredShrinkDir.Values.Any(explored => !explored));
 
-            return CostFunction(area, floorPlan.Design.Costs);
+            return CostFunction(area, floorPlan);
         }
 
         /// <summary>

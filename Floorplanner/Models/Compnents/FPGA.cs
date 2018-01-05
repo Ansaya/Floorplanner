@@ -47,6 +47,14 @@ namespace Floorplanner.Models.Components
 
         public IEnumerable<Point> ValidPoints { get => _validPoints; }
 
+        private IEnumerable<Point> _forbiddenPoints;
+
+        public IEnumerable<Point> ForbiddenPoints { get => _forbiddenPoints; }
+
+        private IEnumerable<Point> _externalBorderPoints;
+
+        public IEnumerable<Point> ExternalBorderPoints { get => _externalBorderPoints; }
+
         private IDictionary<BlockType, int>[,] _resourcesFromOrigin;
         
         public static FPGA Parse(TextReader atFPGADesign)
@@ -66,15 +74,27 @@ namespace Floorplanner.Models.Components
 
             IDictionary<BlockType, int> res = FPHelper.EmptyResources;
             IList<Point> validPoints = new List<Point>();
+            IList<Point> forbiddenPoints = new List<Point>();
+            IList<Point> externalBorderPoints = new List<Point>();
             IDictionary<BlockType, int>[,] resFromOrigin = new Dictionary<BlockType, int>[cols + 1,rows + 1];
-            for(int i = 0; i < Math.Max(rows, cols) + 1; i++)
+            for(int i = 0; i <= Math.Max(rows, cols); i++)
             {
-                if (i <= rows)
+                if (i < rows)
+                {
                     resFromOrigin[0, i] = FPHelper.EmptyResources;
+                    externalBorderPoints.Add(new Point(-1, i));
+                    externalBorderPoints.Add(new Point(cols + 1, i));
+                }
 
-                if(i <= cols)
+                if (i < cols)
+                {
                     resFromOrigin[i, 0] = FPHelper.EmptyResources;
+                    externalBorderPoints.Add(new Point(i, -1));
+                    externalBorderPoints.Add(new Point(i, rows + 1));
+                }
             }
+            resFromOrigin[cols, 0] = FPHelper.EmptyResources;
+            resFromOrigin[0, rows] = FPHelper.EmptyResources;
 
             for (int r = 0; r < rows; r++)
             {
@@ -87,8 +107,14 @@ namespace Floorplanner.Models.Components
                     res[bt]++;
 
                     // Area valid points pre-enumeration
-                    if (bt != BlockType.Forbidden && bt != BlockType.Null)
-                        validPoints.Add(new Point(c, r));
+                    if (bt != BlockType.Null)
+                    {
+                        if (bt != BlockType.Forbidden)
+                            validPoints.Add(new Point(c, r));
+                        else
+                            forbiddenPoints.Add(new Point(c, r));
+                    }
+                        
 
                     // Area resources pre-calculation
                     if(r == 0)
@@ -113,6 +139,8 @@ namespace Floorplanner.Models.Components
             }
 
             fpga._validPoints = validPoints;
+            fpga._forbiddenPoints = forbiddenPoints;
+            fpga._externalBorderPoints = externalBorderPoints;
             fpga._resourcesFromOrigin = resFromOrigin;
 
             fpga.CLBratioBRAM = (double)res[BlockType.CLB] / res[BlockType.BRAM];

@@ -12,6 +12,8 @@ namespace Floorplanner.Models.Solver
 
         public IList<Area> Areas { get; private set; }
 
+        public bool IsConfirmed { get => Areas.All(a => a.IsConfirmed); }
+
         /// <summary>
         /// Return all FPGA points not covered by confirmed areas
         /// or not forbidden by the FPGA design
@@ -31,6 +33,32 @@ namespace Floorplanner.Models.Solver
         {
             Design = toCopy.Design;
             Areas = new List<Area>(toCopy.Areas.Select(old => new Area(old)));
+        }
+
+        /// <summary>
+        /// Get a score accounting for all points of given area adjacent to other confirmed areas
+        /// or FPGA borders or forbidden areas.
+        /// </summary>
+        /// <param name="unconfirmed">Area to calculate the adjacent score for.</param>
+        /// <param name="multiplier">Multiplier to use with the calculated number of adjacent points.(Default = 1)</param>
+        /// <returns>Calculated score (number of adjacent points if multiplier is default).</returns>
+        public int GetAdjacentScore(Area unconfirmed, int multiplier = 1)
+        {
+            if (unconfirmed.IsConfirmed)
+                throw new Exception("Given area must be unconfirmed.");
+
+            // Get all border points from confirmed areas and FPGA board
+            IEnumerable<Point> borders = Areas
+                .Where(a => a.IsConfirmed)
+                .SelectMany(a => a.BorderPoints)
+                .Concat(Design.FPGA.ForbiddenPoints)
+                .Concat(Design.FPGA.ExternalBorderPoints);
+
+            // Check if there is any adjacent point from given area
+            int score = unconfirmed.BorderPoints
+                .Count(p => borders.Any(b => b.ManhattanFrom(p) == 1));
+
+            return score * multiplier;
         }
 
         /// <summary>
@@ -92,7 +120,7 @@ namespace Floorplanner.Models.Solver
         /// Print solution to given text writer
         /// </summary>
         /// <param name="tw">Text writer to print solution to</param>
-        public void PrintOn(TextWriter tw)
+        public void PrintSolutionOn(TextWriter tw)
         {
             tw.WriteLine(Design.ID);
 
@@ -100,12 +128,33 @@ namespace Floorplanner.Models.Solver
                 tw.WriteLine($"{(int)a.TopLeft.X + 1} {(int)a.TopLeft.Y + 1} {a.Width + 1} {a.Height + 1}");                
         }
 
+        /// <summary>
+        /// Print current design to console specifying unconfirmed areas if any
+        /// </summary>
         public void PrintDesignToConsole()
         {
             FPGA fpga = Design.FPGA;
             RegionType[,] currentDesign = new RegionType[fpga.Design.GetLength(0), fpga.Design.GetLength(1)];
 
-            foreach (Area a in Areas.Where(a => a.IsConfirmed))
+            IEnumerable<Area> missing = Areas.Where(a => !a.IsConfirmed);
+
+            if (missing.Any())
+            {
+                Console.WriteLine("\nMissing regions are:");
+                foreach (Area a in missing)
+                {
+                    Console.Write("\t");
+                    a.Region.PrintInfoTo(Console.Out);
+                }
+            }
+
+            IEnumerable<Area> confirmed = Areas.Except(missing);
+
+            Console.WriteLine($"\nPlaced areas statistics:\n" +
+                $"\tMedium region height: {confirmed.Average(a => a.Height + 1):N4}\n" +
+                $"\tMedium region width: {confirmed.Average(a => a.Width + 1):N4}\n");
+
+            foreach (Area a in confirmed)
                 foreach (Point p in a.Points)
                     currentDesign[(int)p.Y, (int)p.X] = IsBorder(p.X, p.Y, a) ? (RegionType)((int)a.Type + 1) : a.Type;
 
