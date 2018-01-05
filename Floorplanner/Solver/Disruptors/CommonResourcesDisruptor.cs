@@ -10,12 +10,16 @@ namespace Floorplanner.Solver.Disruptors
     {
         private readonly SolverTuning _st;
 
-        private readonly Random _var = new Random();
+        private readonly Random _var;
 
-        public CommonResourcesDisruptor(SolverTuning st)
+        private readonly int _seed;
+
+        public CommonResourcesDisruptor(SolverTuning st, int seed)
         {
             _st = st ??
                 throw new ArgumentNullException("Solver options must be provided.");
+            _seed = seed;
+            _var = new Random(seed);
         }
 
         public void DisruptStateFor(Region region, IList<Area> unconfirmed, Floorplan floorPlan)
@@ -27,7 +31,7 @@ namespace Floorplanner.Solver.Disruptors
             {
                 int max = (int)(confirmed.Count * 0.7);
 
-                confirmed.Shuffle();
+                confirmed.Shuffle(_seed);
 
                 for (int i = 0; i < max; i++)
                     confirmed[i].Disrupt(unconfirmed);
@@ -48,8 +52,8 @@ namespace Floorplanner.Solver.Disruptors
                     bigger.Add(current);
             }
 
-            smaller.Shuffle();
-            bigger.Shuffle();
+            smaller.Shuffle(_seed);
+            bigger.Shuffle(_seed);
 
             int caosedAreas = _st.CaosFactor + _var.Next(-1 * _st.CaosVariance, _st.CaosVariance);
             if (caosedAreas <= 0)

@@ -188,7 +188,7 @@ namespace Floorplanner
             if (outputFile != null)
                 outPipe = File.CreateText(outputFile);
 
-            optimiezdPlan.PrintOn(outPipe);
+            optimiezdPlan.PrintSolutionOn(outPipe);
             optimiezdPlan.PrintDesignToConsole();
             Console.WriteLine();
 

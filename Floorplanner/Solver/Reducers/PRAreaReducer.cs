@@ -10,20 +10,14 @@ namespace Floorplanner.Solver.Reducers
     {
         private readonly IAreaReducer _backupReducer;
 
-        private Func<Area, Costs, int> _costFunction = (Area a, Costs c) =>
-        {
-            if (c.AreaWeight == 0)
-                c = c.ToNonZero();
-
-            return /*(a.TileRows.Count() - 1) * 1000000 +*/ a.GetCost(c);
-                //+ a.Resources.Merge(a.Region.Resources, FPHelper.sub).GetCost(c);
-        };
+        private Func<Area, Floorplan, int> _costFunction = (Area a, Floorplan f) =>
+            /*(a.TileRows.Count() - 1) * 100 +*/ a.GetCost(f.Design.Costs.ToNonZero());
 
         /// <summary>
         /// Predefined cost function take into account how many tile rows are
         /// covered by the area and area surface cost
         /// </summary>
-        public Func<Area, Costs, int> CostFunction
+        public Func<Area, Floorplan, int> CostFunction
         {
             get => _costFunction;
 
@@ -75,11 +69,9 @@ namespace Floorplanner.Solver.Reducers
 
                 ShrinkHeight(a, tileHeight);
             }
-
-            Costs c = floorPlan.Design.Costs.ToNonZero();
-
+            
             Area bestArea = areas
-                .Aggregate((a1, a2) => CostFunction(a1, c) < CostFunction(a2, c) ? a1 : a2);
+                .Aggregate((a1, a2) => CostFunction(a1, floorPlan) < CostFunction(a2, floorPlan) ? a1 : a2);
 
             area.Width = bestArea.Width;
             area.Height = bestArea.Height;

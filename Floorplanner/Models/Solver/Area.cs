@@ -117,13 +117,30 @@ namespace Floorplanner.Models.Solver
         {
             get
             {
-                IList<Point> covered = new List<Point>();
-
                 for (int y = (int)TopLeft.Y; y <= TopLeft.Y + Height; y++)
                     for (int x = (int)TopLeft.X; x <= TopLeft.X + Width; x++)
-                        covered.Add(new Point(x, y));
+                        yield return new Point(x, y);
+            }
+        }
 
-                return covered;
+        /// <summary>
+        /// Return border points for this area
+        /// </summary>
+        public IEnumerable<Point> BorderPoints
+        {
+            get
+            {
+                for (int y = (int)TopLeft.Y; y <= TopLeft.Y + Height; y++)
+                {
+                    yield return new Point(TopLeft.X, y);
+                    yield return new Point(TopLeft.X + Width, y);
+                }                    
+
+                for (int x = (int)TopLeft.X; x <= TopLeft.X + Width; x++)
+                {
+                    yield return new Point(x, TopLeft.Y);
+                    yield return new Point(x, TopLeft.Y + Height);
+                }
             }
         }
 
@@ -286,11 +303,39 @@ namespace Floorplanner.Models.Solver
             return xOverlapping;
         }
         
+        /// <summary>
+        /// Check if given area has some borders in common with this area.
+        /// </summary>
+        /// <param name="other">Area to check adjacency with.</param>
+        /// <returns>True if the two areas are adjacent, false else.</returns>
+        public bool IsAdjacent(Area other)
+        {
+            double xDiff = Math.Abs(Center.X - other.Center.X);
+            double yDiff = Math.Abs(Center.Y - other.Center.Y);
+
+            bool leftrightAdj = (Width + other.Width) / 2d == xDiff;
+            bool updownAdj = (Height + other.Height) / 2d == yDiff;
+
+            return leftrightAdj && yDiff == 0
+                || updownAdj && xDiff == 0;
+        }
 
         public bool Contains(Point p)
         {
             return TopLeft.X <= p.X && p.X <= TopLeft.X + Width
                 && TopLeft.Y <= p.Y && p.Y <= TopLeft.Y + Height;
+        }
+
+        public override bool Equals(object obj)
+        {
+            var area = obj as Area;
+            return area != null &&
+                   ID == area.ID;
+        }
+
+        public override int GetHashCode()
+        {
+            return 1213502048 + ID.GetHashCode();
         }
     }
 

@@ -75,6 +75,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Solver\Disruptors\CommonResourcesDisruptor.cs" />
     <Compile Include="Solver\Disruptors\IAreaDisruptor.cs" />
+    <Compile Include="Solver\Optimizers\FirstPlacementOptimizer.cs" />
+    <Compile Include="Solver\Optimizers\IFloorplanOptimizer.cs" />
+    <Compile Include="Solver\Optimizers\ShuffleDisruptionOptimizer.cs" />
+    <Compile Include="Solver\Optimizers\WorstMovingOptimizer.cs" />
     <Compile Include="Solver\Placers\IAreaPlacer.cs" />
     <Compile Include="Solver\Placers\MinCostPlacer.cs" />
     <Compile Include="Solver\Placers\NearestCenterPlacer.cs" />

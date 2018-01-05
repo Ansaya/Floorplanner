@@ -40,6 +40,16 @@ namespace Floorplanner.Test.Models.Components
         }
 
         [TestMethod]
+        public void GetBorderPoints()
+        {
+            IEnumerable<Point> fpgaBorderPoints = fpga.ExternalBorderPoints.OrderBy(p => p.X).ThenBy(p => p.Y);
+
+            Assert.IsFalse(fpga.ValidPoints.Intersect(fpgaBorderPoints).Any());
+            Assert.IsTrue(fpgaBorderPoints.All(a => fpgaBorderPoints.All(o => ReferenceEquals(a, o) || a != o)));
+            Assert.AreEqual(fpga.Xmax * 2 + fpga.Ymax * 2 + 4, fpgaBorderPoints.Count());
+        }
+
+        [TestMethod]
         public void ResourcesFor()
         {
             Area area = new Area(fpga, null, new Point(0, 0));
