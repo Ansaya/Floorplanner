@@ -3,7 +3,6 @@ using Floorplanner.Models.Solver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Floorplanner.Solver.Reducers
 {
@@ -13,24 +12,23 @@ namespace Floorplanner.Solver.Reducers
 
         private readonly double _arDSPRatio;
 
-        private readonly int _rBRAMThres;
-
-        private readonly int _rDSPThres;
+        private readonly int _minDim;
         
         public Func<Area, Floorplan, int> CostFunction { get; set; } = 
             (Area a, Floorplan f) => a.GetCost(f.Design.Costs.ToNonZero());
 
-        public RatioAreaReducer(double arBRAMratio, double arDSPratio, int rBRAMThres = 3, int rDSPThres = 3)
+        public RatioAreaReducer(double arBRAMratio, double arDSPratio, int minDimension = 1)
         {
             _arBRAMratio = arBRAMratio;
             _arDSPRatio = arDSPratio;
-            _rBRAMThres = rBRAMThres;
-            _rDSPThres = rDSPThres;
+            _minDim = minDimension - 1; 
+            // Minus one because area report width and height as increment from single block
+            // Ex.: area with width=3 covers 4 blocks in width
         }
 
         public IAreaReducer Clone()
         {
-            IAreaReducer clone = new RatioAreaReducer(_arBRAMratio, _arDSPRatio, _rBRAMThres, _rDSPThres);
+            IAreaReducer clone = new RatioAreaReducer(_arBRAMratio, _arDSPRatio, _minDim + 1);
             clone.CostFunction = CostFunction;
 
             return clone;
@@ -45,39 +43,25 @@ namespace Floorplanner.Solver.Reducers
         /// <returns>Reduced area cost.</returns>
         public void Reduce(Area area, Point idealCenter, Floorplan floorPlan)
         {
-            // If the area requires mostly homogeneous resources
-            // try reducing with two different approaches and
+            // Try to reduce the area with two different approaches and
             // return best result
-            if(area.Region.Resources[BlockType.BRAM] <= _rBRAMThres 
-                && area.Region.Resources[BlockType.DSP] <= _rDSPThres)
-            {
-                Area hetReduced = new Area(area);
-                Area homReduced = new Area(area);
+            Area hetReduced = new Area(area);
+            Area homReduced = new Area(area);
 
-                Task<double> hetCost = Task.Factory
-                    .StartNew(() => ReduceWithPolicy(hetReduced, idealCenter, floorPlan, HeterogeneousShrinkArbiter));
+            double hetCost =
+                ReduceWithPolicy(hetReduced, idealCenter, floorPlan, HeterogeneousShrinkArbiter);
 
-                Task<double> homCost = Task.Factory
-                    .StartNew(() => ReduceWithPolicy(homReduced, idealCenter, floorPlan, HomogeneousShrinkArbiter));
+            double homCost =
+                ReduceWithPolicy(homReduced, idealCenter, floorPlan, HomogeneousShrinkArbiter);
 
-                Task.WaitAll(hetCost, homCost);
+            bool homHetReduce = hetCost < homCost;
 
-                bool homHetReduce = hetCost.Result < homCost.Result;
+            Area best = homHetReduce ? hetReduced : homReduced;
+            //Console.WriteLine($"\t{(homHetReduce ? "Heterogeneous" : "Homogeneous")} reduce branch taken. (From both)");
 
-                Area best = homHetReduce ? hetReduced : homReduced;
-
-                area.Width = best.Width;
-                area.Height = best.Height;
-                area.MoveTo(best.TopLeft);
-
-                //Console.WriteLine($"\t{(homHetReduce ? "Heterogeneous" : "Homogeneous")} reduce branch taken. (From both)");
-                return;
-            }
-
-            //Console.WriteLine("\tHeterogeneous reduce branch taken.");
-
-            // Else go with standard approach only
-            ReduceWithPolicy(area, idealCenter, floorPlan, HeterogeneousShrinkArbiter);
+            area.Width = best.Width;
+            area.Height = best.Height;
+            area.MoveTo(best.TopLeft);
         }
 
         private double ReduceWithPolicy(Area area, Point idealCenter, Floorplan floorPlan, Func<Area, Point, bool> shrinkArbiter)
@@ -120,7 +104,10 @@ namespace Floorplanner.Solver.Reducers
                 {
                     // Try reducing on chosen direction
                     // If reduction isn't possible or leads to an area with insufficient resources
-                    if (!area.TryShape(Models.Solver.Action.Shrink, shrinkDir) || !area.IsSufficient)
+                    if (!area.TryShape(Models.Solver.Action.Shrink, shrinkDir) 
+                        || !area.IsSufficient
+                        || area.Width < _minDim
+                        || area.Height < _minDim)
                     {
                         // Set current direction as explored
                         exploredShrinkDir[shrinkDir] = true;

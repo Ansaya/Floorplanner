@@ -10,6 +10,8 @@ namespace Floorplanner.Solver.Reducers
     {
         private readonly IAreaReducer _backupReducer;
 
+        private readonly int _minDim;
+
         private Func<Area, Floorplan, int> _costFunction = (Area a, Floorplan f) =>
             /*(a.TileRows.Count() - 1) * 100 +*/ a.GetCost(f.Design.Costs.ToNonZero());
 
@@ -30,9 +32,10 @@ namespace Floorplanner.Solver.Reducers
 
         public bool BackupEnabled { get => _backupReducer != null; }
 
-        public PRAreaReducer(IAreaReducer bacukpReducer = null)
+        public PRAreaReducer(IAreaReducer bacukpReducer = null, int minDimension = 1)
         {
             _backupReducer = bacukpReducer;
+            _minDim = minDimension;
         }
 
         public IAreaReducer Clone()
@@ -151,7 +154,7 @@ namespace Floorplanner.Solver.Reducers
                 throw new Exception("Only right or left direction are valid here.");
 
             // Try reducing on chosen direction until possible or resources are insufficient
-            while (area.IsSufficient)
+            while (area.IsSufficient && area.Width > _minDim)
                 if (!area.TryShape(Models.Solver.Action.Shrink, shrinkDir))
                     break;
 
@@ -172,18 +175,19 @@ namespace Floorplanner.Solver.Reducers
             int startY = (int)area.TopLeft.Y;
             int endY = startY + area.Height;
 
+            if (area.Height == _minDim) return;
+
             do
             {
                 if (!area.TryShape(Models.Solver.Action.Shrink, Direction.Down))
                     break;
-            } while (area.IsSufficient);
+            } while (area.IsSufficient && area.Height > _minDim);
 
 
             if (!area.IsSufficient)
                 area.TryShape(Models.Solver.Action.Expand, Direction.Down);
 
-            if (area.Height == endY - startY)
-                return;
+            if (area.Height == endY - startY) return;
 
             int topOverflow = tileHeight - startY % tileHeight;
             int bottomOverflow = endY % tileHeight;

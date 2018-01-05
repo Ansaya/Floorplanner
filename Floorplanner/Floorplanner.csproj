@@ -82,13 +82,13 @@
     <Compile Include="Solver\Placers\IAreaPlacer.cs" />
     <Compile Include="Solver\Placers\MinCostPlacer.cs" />
     <Compile Include="Solver\Placers\NearestCenterPlacer.cs" />
+    <Compile Include="Solver\Placers\NearestPointEnumerator.cs" />
     <Compile Include="Solver\Placers\PlacerHelper.cs" />
     <Compile Include="Solver\Reducers\PRAreaReducer.cs" />
     <Compile Include="Solver\Reducers\ReducerHelper.cs" />
     <Compile Include="Solver\RouteOptimizers\AmplRouteOptimizer.cs" />
     <Compile Include="Solver\Reducers\IAreaReducer.cs" />
     <Compile Include="Solver\RouteOptimizers\IRouteOptimizer.cs" />
-    <Compile Include="Solver\Placers\NearestPointEnumerator.cs" />
     <Compile Include="Solver\FloorplanOptimizer.cs" />
     <Compile Include="Solver\OptimizationException.cs" />
     <Compile Include="Solver\Reducers\RatioReducer.cs" />

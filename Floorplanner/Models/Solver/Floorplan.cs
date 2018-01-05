@@ -68,7 +68,7 @@ namespace Floorplanner.Models.Solver
         /// <returns>Overall floorplan score.</returns>
         public int GetScore()
         {
-            if (Areas.Any(a => !a.IsConfirmed))
+            if (!IsConfirmed)
                 throw new Exception("Cannot calculate floorplan score if some areas haven't been placed.");
 
             return Design.Costs.MaxScore - GetCostFor(Areas);
@@ -85,6 +85,32 @@ namespace Floorplanner.Models.Solver
             confirmed.Add(unconfirmed);
 
             return GetCostFor(confirmed);
+        }
+
+        /// <summary>
+        /// Calculate maximum wirelength of a connection in a confirmed floorplan
+        /// </summary>
+        /// <exception cref="Exception">If called when some areas haven't been confirmed yet.</exception>
+        /// <returns>Maximum connection length.</returns>
+        public int GetMaxWirelength()
+        {
+            if (!IsConfirmed)
+                throw new Exception("Cannot calculate floorplan score if some areas haven't been placed.");
+
+            return (int)GetMaxWireLengthFor(Areas);
+        }
+
+        /// <summary>
+        /// Calculate maximum wirelength for currently confirmed areas plus given unconfirmed area.
+        /// </summary>
+        /// <param name="unconfirmed">Unconfirmed area to be added to cost computation.</param>
+        /// <returns>Partial maximum wirelength value.</returns>
+        public int GetPartialMaxWirelengthWith(Area unconfirmed)
+        {
+            IList<Area> confirmed = new List<Area>(Areas.Where(a => a.IsConfirmed));
+            confirmed.Add(unconfirmed);
+
+            return (int)GetMaxWireLengthFor(confirmed);
         }
 
         private int GetCostFor(IEnumerable<Area> areas)
@@ -114,6 +140,63 @@ namespace Floorplanner.Models.Solver
             }
             
             return totalArea * Design.Costs.AreaWeight + (int)totalWireDistance * Design.Costs.WireWeight;
+        }
+
+        private double GetMediumWireLengthFor(IEnumerable<Area> areas)
+        {
+            double length = 0;
+            int wires = 0;
+
+            foreach(Area a in areas)
+            {
+                Point aCenter = a.Center;
+
+                foreach(Area b in areas)
+                {
+                    if(Design.RegionWires[a.ID, b.ID] > 0)
+                    {
+                        length +=b.Center.ManhattanFrom(aCenter);
+                        wires++;
+                    }                    
+                }
+
+                foreach(IOConn io in a.Region.IOConns)
+                {
+                    length += io.Point.ManhattanFrom(aCenter);
+                    wires++;
+                }
+            }
+
+            return length / wires;
+        }
+
+        private double GetMaxWireLengthFor(IEnumerable<Area> areas)
+        {
+            double maxLength = 0;
+
+            foreach (Area a in areas)
+            {
+                Point aCenter = a.Center;
+
+                foreach (Area b in areas)
+                {
+                    if(Design.RegionWires[a.ID, b.ID] > 0)
+                    {
+                        double length = b.Center.ManhattanFrom(aCenter);
+
+                        if (length > maxLength) maxLength = length;
+                    }
+                }
+
+                foreach (IOConn io in a.Region.IOConns)
+                {
+                    double length = io.Point.ManhattanFrom(aCenter);
+
+                    if (length > maxLength) maxLength = length;
+                }
+            }
+
+            return maxLength;
         }
 
         /// <summary>
@@ -152,7 +235,11 @@ namespace Floorplanner.Models.Solver
 
             Console.WriteLine($"\nPlaced areas statistics:\n" +
                 $"\tMedium region height: {confirmed.Average(a => a.Height + 1):N4}\n" +
-                $"\tMedium region width: {confirmed.Average(a => a.Width + 1):N4}\n");
+                $"\tMinimum region height: {confirmed.Min(a => a.Height + 1):N4}\n" +
+                $"\tMedium region width: {confirmed.Average(a => a.Width + 1):N4}\n" +
+                $"\tMinimum region width: {confirmed.Min(a => a.Width + 1):N4}\n" +
+                $"\tMedium connections length: {GetMediumWireLengthFor(confirmed):N4}\n" +
+                $"\tMaximum connection length: {GetMaxWireLengthFor(confirmed):N4}\n");
 
             foreach (Area a in confirmed)
                 foreach (Point p in a.Points)

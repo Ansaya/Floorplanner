@@ -60,6 +60,12 @@ namespace Floorplanner
                     int maxConcurrent = 0;
                     if (int.TryParse(mc, out maxConcurrent) && maxConcurrent > 0)
                         _opt.MaxConcurrent = maxConcurrent;
+                }, true),
+                new ArgOption("|minDimension", "Minimum region thickness for every region to be considered during placement.", md =>
+                {
+                    int minDimension = 1;
+                    if (int.TryParse(md, out minDimension) && minDimension >= 1)
+                        _opt.MinDimension = minDimension;
                 }, true));
 
         static void Main(string[] args)

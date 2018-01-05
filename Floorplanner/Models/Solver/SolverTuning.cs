@@ -19,6 +19,8 @@ namespace Floorplanner.Models.Solver
 
         public int MaxConcurrent { get; set; } = Environment.ProcessorCount;
 
+        public int MinDimension { get; set; } = 1;
+
         public void PrintValuesTo(TextWriter tw)
         {
             foreach(var p in GetType().GetProperties())

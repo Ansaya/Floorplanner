@@ -31,11 +31,11 @@ namespace Floorplanner.Solver
             // Setup placement tools to be used
             double PRRegionsRatio = Design.Regions.Count(r => r.Type == RegionType.Reconfigurable) / Design.Regions.Count();
 
-            IAreaReducer ratioReducer = new RatioAreaReducer(1.4, 1.4, 100, 100);
-            IAreaReducer prReducer = new PRAreaReducer(ratioReducer);
+            IAreaReducer ratioReducer = new RatioAreaReducer(1.4, 1.4, _st.MinDimension);
+            IAreaReducer prReducer = new PRAreaReducer(ratioReducer, _st.MinDimension);
 
             IAreaReducer areaReducer = PRRegionsRatio > 0.75 ? prReducer : ratioReducer;
-            IAreaPlacer areaPlacer = new MinCostPlacer(areaReducer);
+            IAreaPlacer areaPlacer = new MinCostPlacer(areaReducer, _st.MinDimension);
             IAreaDisruptor areaDisruptor = new CommonResourcesDisruptor(_st, FPHelper.MagicIntSeed);
                         
             Floorplan firstValidPlan = new Floorplan(Design);

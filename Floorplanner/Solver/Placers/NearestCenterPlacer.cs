@@ -9,10 +9,13 @@ namespace Floorplanner.Solver.Placers
     {
         private readonly IAreaReducer _areaReducer;
 
-        public NearestCenterPlacer(IAreaReducer areaReducer)
+        private readonly int _minDim;
+
+        public NearestCenterPlacer(IAreaReducer areaReducer, int minDimension = 1)
         {
             _areaReducer = areaReducer ??
                 throw new ArgumentNullException("Area reducer must be set to an instance of an object.");
+            _minDim = minDimension - 1;
         }
 
         public void PlaceArea(Area area, Floorplan floorPlan, Point idealCenter)
@@ -33,6 +36,12 @@ namespace Floorplanner.Solver.Placers
                 // Expand area filling all available space
                 PlacerHelper.Expand(area, floorPlan);
 
+                // Remove all newly explored 
+                nearestPoint.Skip(area);
+
+                // If expanded area is not compliant with minimum width/height continue
+                if (area.Width < _minDim || area.Height < _minDim) continue;
+
                 Point[] heuristicCenters = new Point[]
                 {
                     new Point(area.TopLeft),
@@ -41,9 +50,6 @@ namespace Floorplanner.Solver.Placers
                     new Point(area.TopLeft.X + area.Width, area.TopLeft.Y + area.Height),
                     new Point(area.Center)
                 };
-
-                // Remove all newly explored 
-                nearestPoint.Skip(area);
 
                 // Validate the area and check if there are sufficent resources
                 // If validation isn't possible or left resources after validation

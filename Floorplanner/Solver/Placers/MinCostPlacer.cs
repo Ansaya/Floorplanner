@@ -10,9 +10,12 @@ namespace Floorplanner.Solver.Placers
     {
         private readonly IAreaReducer _areaReducer;
 
-        public MinCostPlacer(IAreaReducer areaReducer)
+        private readonly int _minDim;
+
+        public MinCostPlacer(IAreaReducer areaReducer, int minDimension = 1)
         {
             _areaReducer = areaReducer;
+            _minDim = minDimension - 1;
         }
 
         public void PlaceArea(Area area, Floorplan floorPlan, Point idealCenter)
@@ -37,7 +40,10 @@ namespace Floorplanner.Solver.Placers
                 // Validate the area and check if there are sufficent resources
                 // If validation isn't possible or left resources after validation
                 // aren't enough continue searching for a valid area
-                if (!PlacerHelper.TryValidatePR(freeArea) || !freeArea.IsSufficient)
+                if (!PlacerHelper.TryValidatePR(freeArea) 
+                    || !freeArea.IsSufficient 
+                    || freeArea.Width < _minDim
+                    || freeArea.Height < _minDim)
                     continue;
 
                 // If current area is eligible define some base points to reduce throw
